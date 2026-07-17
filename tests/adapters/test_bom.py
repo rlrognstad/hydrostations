@@ -10,7 +10,7 @@ _KIWIS_RESPONSE = [
 
 
 def test_fetch_stations_parses_kiwis_response(mocked_api: respx.MockRouter):
-    mocked_api.get("http://www.bom.gov.au/waterdata/services").mock(
+    mocked_api.get("https://www.bom.gov.au/waterdata/services").mock(
         return_value=httpx.Response(200, json=_KIWIS_RESPONSE)
     )
 
@@ -26,7 +26,7 @@ def test_fetch_stations_parses_kiwis_response(mocked_api: respx.MockRouter):
 
 
 def test_fetch_stations_handles_empty_response(mocked_api: respx.MockRouter):
-    mocked_api.get("http://www.bom.gov.au/waterdata/services").mock(
+    mocked_api.get("https://www.bom.gov.au/waterdata/services").mock(
         return_value=httpx.Response(200, json=[])
     )
 

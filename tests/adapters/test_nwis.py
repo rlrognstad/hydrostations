@@ -43,3 +43,15 @@ def test_fetch_stations_handles_empty_response(mocked_api: respx.MockRouter):
 
     frame = NwisAdapter().fetch_stations(compartment="GW")
     assert frame.empty
+
+
+def test_fetch_stations_skips_out_of_coverage_bbox_without_http_call(
+    mocked_api: respx.MockRouter,
+):
+    # No route registered for waterservices.usgs.gov -- if the adapter made
+    # a request anyway, respx would raise for the unmatched call.
+    frame = NwisAdapter().fetch_stations(
+        bbox=BBox(min_lon=8.0, min_lat=42.0, max_lon=30.0, max_lat=51.0),
+        compartment="Q",
+    )
+    assert frame.empty

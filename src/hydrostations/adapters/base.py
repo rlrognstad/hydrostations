@@ -14,6 +14,15 @@ class BBox:
     max_lat: float
 
 
+def bboxes_intersect(a: BBox, b: BBox) -> bool:
+    return not (
+        a.max_lon < b.min_lon
+        or a.min_lon > b.max_lon
+        or a.max_lat < b.min_lat
+        or a.min_lat > b.max_lat
+    )
+
+
 class StationAdapter(ABC):
     """Interface every network adapter must implement."""
 

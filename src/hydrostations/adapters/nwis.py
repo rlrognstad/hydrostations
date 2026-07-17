@@ -3,6 +3,11 @@
 Uses the NWIS Site Web Service (https://waterservices.usgs.gov/nwis/site/)
 in RDB (tab-delimited) format, with `seriesCatalogOutput=true` to recover
 each site's period of record for the requested parameter.
+
+NWIS also rejects any bBox request larger than ~25 square degrees (400
+error). `_COVERAGE_BBOXES` avoids the common case -- a query bbox entirely
+outside the US -- but a large *in-coverage* bbox (e.g. all of CONUS) can
+still exceed the limit; tiling such requests isn't implemented yet.
 """
 
 from __future__ import annotations
@@ -13,10 +18,21 @@ import geopandas as gpd
 import httpx
 import pandas as pd
 
-from hydrostations.adapters.base import BBox, StationAdapter
+from hydrostations.adapters.base import BBox, StationAdapter, bboxes_intersect
 from hydrostations.schema import stations_frame_from_records
 
 _BASE_URL = "https://waterservices.usgs.gov/nwis/site/"
+
+# Coarse coverage area (CONUS + AK/HI/PR). Used to skip fetching entirely
+# when the requested bbox can't possibly intersect NWIS data -- otherwise a
+# bbox this large would also trip NWIS's own bounding-box size limit (~25
+# sq. degrees; larger requests 400).
+_COVERAGE_BBOXES = (
+    BBox(min_lon=-125.0, min_lat=24.0, max_lon=-66.0, max_lat=50.0),  # CONUS
+    BBox(min_lon=-170.0, min_lat=51.0, max_lon=-129.0, max_lat=72.0),  # Alaska
+    BBox(min_lon=-160.0, min_lat=18.0, max_lon=-154.0, max_lat=23.0),  # Hawaii
+    BBox(min_lon=-68.0, min_lat=17.0, max_lon=-65.0, max_lat=19.0),  # Puerto Rico
+)
 
 # NWIS site-type codes for the compartments this adapter supports.
 _SITE_TYPES = {
@@ -45,6 +61,9 @@ class NwisAdapter(StationAdapter):
         bbox: BBox | None = None,
         compartment: str | None = None,
     ) -> gpd.GeoDataFrame:
+        if bbox is not None and not any(bboxes_intersect(bbox, c) for c in _COVERAGE_BBOXES):
+            return stations_frame_from_records([])
+
         compartments = [compartment] if compartment else list(self.compartments)
         records = []
         for c in compartments:
@@ -58,7 +77,10 @@ class NwisAdapter(StationAdapter):
             "format": "rdb",
             "siteType": _SITE_TYPES[compartment],
             "siteStatus": "all",
-            "siteOutput": "expanded",
+            # NWIS rejects siteOutput=expanded combined with
+            # seriesCatalogOutput=true ("feature not supported"); basic
+            # output still carries station_nm/dec_lat_va/dec_long_va.
+            "siteOutput": "basic",
             "seriesCatalogOutput": "true",
             "parameterCd": _PARM_CODES[compartment],
         }

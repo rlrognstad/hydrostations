@@ -1,15 +1,9 @@
 """BoM Water Data Online (Australia) adapter.
 
-BoM Water Data Online is known to run on a KISTERS WISKI/KiWIS backend
-(http://www.bom.gov.au/waterdata/services), which exposes station lists via
+BoM Water Data Online runs on a KISTERS WISKI/KiWIS backend
+(https://www.bom.gov.au/waterdata/services), which exposes station lists via
 a `getStationList` request returning JSON shaped as `[header_row, *rows]`.
-This adapter follows that general KiWIS request/response pattern.
-
-Confidence note: the request/response *shape* (KiWIS-style) is well
-established across KISTERS deployments, but the exact `returnfields` names,
-`parametertype_name` values, and bbox parameter for this specific BoM
-instance are not independently verified here. Confirm against BoM's
-published API documentation before relying on this in production.
+Verified live against the real endpoint for both `Q` and `GW`.
 """
 
 from __future__ import annotations
@@ -21,11 +15,11 @@ import pandas as pd
 from hydrostations.adapters.base import BBox, StationAdapter
 from hydrostations.schema import stations_frame_from_records
 
-_BASE_URL = "http://www.bom.gov.au/waterdata/services"
+_BASE_URL = "https://www.bom.gov.au/waterdata/services"
 
 _PARAMETER_TYPES = {
     "Q": "Water Course Discharge",
-    "GW": "Groundwater Level",
+    "GW": "Ground Water Level",
 }
 
 _LICENSE = "CC BY 4.0 (Bureau of Meteorology, Australia)"
@@ -69,7 +63,7 @@ class BomAdapter(StationAdapter):
         if bbox is not None:
             params["bbox"] = f"{bbox.min_lon},{bbox.min_lat},{bbox.max_lon},{bbox.max_lat}"
 
-        response = httpx.get(_BASE_URL, params=params, timeout=30.0)
+        response = httpx.get(_BASE_URL, params=params, timeout=30.0, follow_redirects=True)
         response.raise_for_status()
         payload = response.json()
         if not payload or len(payload) < 2:
