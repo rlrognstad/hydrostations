@@ -1,4 +1,4 @@
-# Hydorstations hydrology packages
+# Hydrostations hydrology packages
 
 A [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) containing
 related, independently-installable Python packages:
