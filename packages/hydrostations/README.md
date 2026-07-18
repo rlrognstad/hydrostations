@@ -15,13 +15,19 @@ stations = get_stations(basin="niger", compartment="Q")
 ## Status
 
 Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
-**GGMN** (IGRAC, global groundwater), **WISE** (EEA, Europe). Stubbed, not
-yet implemented: **HidroWeb** (ANA, Brazil), **SIEREM** (HydroSciences
-Montpellier) — each has a module docstring explaining the access model as
-last investigated. Note that both GGMN and WISE were *also* stubbed as
-"blocked" originally; live investigation each time found that assumption
-outdated. Worth re-checking a stub's real access model before trusting its
-docstring's blocker as current.
+**GGMN** (IGRAC, global groundwater), **WISE** (EEA, Europe), **HidroWeb**
+(ANA, Brazil). Stubbed, not yet implemented: **SIEREM** (HydroSciences
+Montpellier) — its module docstring explains the access model as last
+investigated (no live REST API; ~647 static per-basin KML files, no
+server-side spatial filtering, needs a bulk-fetch-then-filter design
+rather than a simple per-query adapter).
+
+Worth knowing: GGMN, WISE, and HidroWeb were *all* stubbed as "blocked" in
+the original design doc, and live investigation found each assumption
+outdated -- GGMN's MOU only governs data contributors, WISE has a real
+queryable SQL API, and HidroWeb's station inventory (as opposed to its
+time-series download) needs no auth at all. Re-check a stub's real access
+model before trusting its docstring's blocker as current.
 
 `hydrostations.lookup_coverage(polygon)` answers "which networks and
 compartments are declared to cover this area" using each adapter's own
