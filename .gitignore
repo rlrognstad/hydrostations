@@ -21,3 +21,6 @@ htmlcov/
 
 # Scratch / working notes, not part of the package
 scratch/
+
+# Generated example output (fetches live data, goes stale immediately)
+packages/hydrocrosswalk/examples/*.html
