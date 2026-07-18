@@ -20,9 +20,27 @@ Stubbed, not yet implemented: **WISE** (EEA), **HidroWeb** (ANA, Brazil),
 explaining why (bulk-download-only, auth-gated, or portal-only access,
 respectively) and what's needed before it can be built.
 
-`basin=` resolution is currently a small hardcoded name-to-bounding-box
-lookup (`hydrostations.basins`), a placeholder pending integration with the
-HydroBASINS x GADM x H3 crosswalk.
+`basin=` resolution is a small name-to-bounding-box lookup
+(`hydrostations.basins`) used only to pre-filter adapter API queries -- the
+bboxes are real HydroBASINS-derived bounds, not hand-drawn. For actually
+assigning each station to a basin/H3 cell, use
+[`hydrocrosswalk.assign_crosswalk()`](../hydrocrosswalk/) on this package's
+output:
+
+```python
+from hydrostations import get_stations
+from hydrocrosswalk import assign_crosswalk
+
+stations = get_stations(network="nwis", compartment="Q")
+enriched = assign_crosswalk(
+    stations, h3_resolution=6, region="na", hydrobasins_level=4, countries=["USA"]
+)
+# -> adds h3_cell, hybas_id, pfaf_id, and geoBoundaries admin fields
+```
+
+The two packages don't depend on each other -- `hydrostations` stays free of
+`hydrocrosswalk`'s heavier geospatial dependencies, and `assign_crosswalk()`
+works on any GeoDataFrame of points, not just this package's output.
 
 ## Development
 

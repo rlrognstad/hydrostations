@@ -1,3 +1,3 @@
-from hydrocrosswalk.crosswalk import build_crosswalk
+from hydrocrosswalk.crosswalk import assign_crosswalk, build_crosswalk
 
-__all__ = ["build_crosswalk"]
+__all__ = ["assign_crosswalk", "build_crosswalk"]

@@ -1,8 +1,9 @@
 import geopandas as gpd
-from shapely.geometry import box
+import pytest
+from shapely.geometry import Point, box
 
 import hydrocrosswalk.crosswalk as crosswalk_module
-from hydrocrosswalk.crosswalk import build_crosswalk
+from hydrocrosswalk.crosswalk import assign_crosswalk, build_crosswalk
 from hydrocrosswalk.sources.hydrobasins import HYDROBASINS_LICENSE_NOTE
 
 
@@ -66,3 +67,33 @@ def test_build_crosswalk_bbox_filters_basins(monkeypatch):
     )
 
     assert set(table["hybas_id"]) == {1}
+
+
+def test_assign_crosswalk_enriches_arbitrary_points_preserving_columns():
+    points = gpd.GeoDataFrame(
+        {"station_id": ["a", "b", "c"], "name": ["A", "B", "C"]},
+        geometry=[Point(0.5, 0.5), Point(10.5, 10.5), Point(50, 50)],
+        crs="EPSG:4326",
+    )
+
+    result = assign_crosswalk(
+        points,
+        h3_resolution=6,
+        basins=_fake_basins(),
+        admin=_fake_admin(),
+    )
+
+    assert list(result["station_id"]) == ["a", "b", "c"]
+    assert list(result["hybas_id"][:2]) == [1.0, 2.0]
+    assert result["hybas_id"].isna().iloc[2]
+    assert result.loc[0, "shapeName"] == "Testland"
+    assert result.loc[1:, "shapeName"].isna().all()
+    assert result["h3_cell"].notna().all()
+    assert (result["hydrobasins_license_note"] == HYDROBASINS_LICENSE_NOTE).all()
+    assert "geometry" in result.columns  # the input points' own geometry is fine to keep
+
+
+def test_assign_crosswalk_requires_basins_or_region_level():
+    points = gpd.GeoDataFrame({"id": [1]}, geometry=[Point(0.5, 0.5)], crs="EPSG:4326")
+    with pytest.raises(ValueError, match="basins"):
+        assign_crosswalk(points, h3_resolution=6, admin=_fake_admin())
