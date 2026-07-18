@@ -24,3 +24,4 @@ scratch/
 
 # Generated example output (fetches live data, goes stale immediately)
 packages/hydrocrosswalk/examples/*.html
+packages/hydrostations/examples/*.html
