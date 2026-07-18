@@ -15,11 +15,13 @@ stations = get_stations(basin="niger", compartment="Q")
 ## Status
 
 Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
-**GGMN** (IGRAC, global groundwater). Stubbed, not yet implemented: **WISE**
-(EEA), **HidroWeb** (ANA, Brazil), **SIEREM** (HydroSciences Montpellier) —
-each has a module docstring explaining why (bulk-download-only, auth-gated,
-or portal-only access, respectively) and what's needed before it can be
-built.
+**GGMN** (IGRAC, global groundwater), **WISE** (EEA, Europe). Stubbed, not
+yet implemented: **HidroWeb** (ANA, Brazil), **SIEREM** (HydroSciences
+Montpellier) — each has a module docstring explaining the access model as
+last investigated. Note that both GGMN and WISE were *also* stubbed as
+"blocked" originally; live investigation each time found that assumption
+outdated. Worth re-checking a stub's real access model before trusting its
+docstring's blocker as current.
 
 `hydrostations.lookup_coverage(polygon)` answers "which networks and
 compartments are declared to cover this area" using each adapter's own
