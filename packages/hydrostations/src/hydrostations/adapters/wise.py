@@ -24,12 +24,17 @@ from hydrostations.exceptions import AdapterNotImplementedError
 
 _LICENSE = "EEA open data (reuse per EEA data policy)"
 
+# Coarse declared coverage: Europe (WISE-SoE's WFD reporting scope), not a
+# verified service area -- for hydrostations.coverage's static lookup only.
+_COVERAGE_BBOXES = (BBox(min_lon=-25.0, min_lat=34.0, max_lon=45.0, max_lat=71.0),)
+
 
 class WiseAdapter(StationAdapter):
     network = "WISE"
     license = _LICENSE
     redistribution_ok = True
     compartments = ("Q", "GW", "other")
+    coverage = _COVERAGE_BBOXES
 
     def fetch_stations(
         self,

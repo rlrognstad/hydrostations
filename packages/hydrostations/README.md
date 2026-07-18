@@ -14,11 +14,25 @@ stations = get_stations(basin="niger", compartment="Q")
 
 ## Status
 
-Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia).
-Stubbed, not yet implemented: **WISE** (EEA), **HidroWeb** (ANA, Brazil),
-**SIEREM** (HydroSciences Montpellier) — each has a module docstring
-explaining why (bulk-download-only, auth-gated, or portal-only access,
-respectively) and what's needed before it can be built.
+Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
+**GGMN** (IGRAC, global groundwater). Stubbed, not yet implemented: **WISE**
+(EEA), **HidroWeb** (ANA, Brazil), **SIEREM** (HydroSciences Montpellier) —
+each has a module docstring explaining why (bulk-download-only, auth-gated,
+or portal-only access, respectively) and what's needed before it can be
+built.
+
+`hydrostations.lookup_coverage(polygon)` answers "which networks and
+compartments are declared to cover this area" using each adapter's own
+coarse, hand-declared coverage bboxes -- no live API calls, no station
+counts:
+
+```python
+from hydrostations import lookup_coverage
+from shapely.geometry import box
+
+lookup_coverage(box(4.0, 50.0, 7.0, 54.0))
+# -> {"WISE": ["Q", "GW", "other"], "GGMN": ["GW"]}
+```
 
 `basin=` resolution is a small name-to-bounding-box lookup
 (`hydrostations.basins`) used only to pre-filter adapter API queries -- the
@@ -72,4 +86,8 @@ Every adapter returns a GeoDataFrame with the same columns:
 `redistribution_ok` exists because not every source permits it (GRDC, once
 its adapter is built, will be the first `False` case) — code that consumes
 `hydrostations` output should check this flag before caching or
-re-publishing raw records.
+re-publishing raw records. It's a blunt boolean, though: GGMN's real license
+is CC BY-NC-SA 4.0 (non-commercial, share-alike), which doesn't fit a plain
+yes/no -- `redistribution_ok=True` there because redistribution genuinely is
+allowed, but check the `license` string for the actual conditions before
+relying on it commercially.

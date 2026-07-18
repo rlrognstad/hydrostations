@@ -30,6 +30,10 @@ class StationAdapter(ABC):
     license: str
     redistribution_ok: bool
     compartments: tuple[str, ...]
+    # Coarse, hand-declared geographic coverage (e.g. NWIS = CONUS + AK/HI/PR).
+    # Used for static coverage lookups (hydrostations.coverage) and to skip
+    # doomed requests -- not an authoritative service-area boundary.
+    coverage: tuple[BBox, ...]
 
     @abstractmethod
     def fetch_stations(

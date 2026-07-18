@@ -24,12 +24,17 @@ from hydrostations.exceptions import AdapterNotImplementedError
 
 _LICENSE = "ANA open data (Brazilian government open data)"
 
+# Coarse declared coverage: Brazil, not a verified service area -- for
+# hydrostations.coverage's static lookup only.
+_COVERAGE_BBOXES = (BBox(min_lon=-74.0, min_lat=-34.0, max_lon=-34.0, max_lat=5.5),)
+
 
 class HidroWebAdapter(StationAdapter):
     network = "HIDROWEB"
     license = _LICENSE
     redistribution_ok = True
     compartments = ("Q", "P")
+    coverage = _COVERAGE_BBOXES
 
     def fetch_stations(
         self,

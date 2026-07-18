@@ -24,12 +24,21 @@ from hydrostations.exceptions import AdapterNotImplementedError
 
 _LICENSE = "Open, citation required (SIEREM / HydroSciences Montpellier)"
 
+# Coarse declared coverage per SIEREM's stated archive scope -- West/Central
+# Africa plus the Mediterranean rim -- not a verified service area; for
+# hydrostations.coverage's static lookup only.
+_COVERAGE_BBOXES = (
+    BBox(min_lon=-18.0, min_lat=-5.0, max_lon=25.0, max_lat=25.0),  # West/Central Africa
+    BBox(min_lon=-10.0, min_lat=30.0, max_lon=40.0, max_lat=45.0),  # Mediterranean rim
+)
+
 
 class SieremAdapter(StationAdapter):
     network = "SIEREM"
     license = _LICENSE
     redistribution_ok = True
     compartments = ("Q", "P")
+    coverage = _COVERAGE_BBOXES
 
     def fetch_stations(
         self,
