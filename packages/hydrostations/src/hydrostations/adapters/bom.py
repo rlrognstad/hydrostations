@@ -29,12 +29,19 @@ _RETURN_FIELDS = (
     "station_id,object_type,parametertype_name"
 )
 
+# Coarse declared coverage: mainland Australia + Tasmania. Not verified
+# against a live source (unlike NWIS's, which is load-bearing for that
+# adapter's own bbox-size limit) -- for hydrostations.coverage's static
+# lookup only.
+_COVERAGE_BBOXES = (BBox(min_lon=112.0, min_lat=-44.0, max_lon=154.0, max_lat=-10.0),)
+
 
 class BomAdapter(StationAdapter):
     network = "BOM"
     license = _LICENSE
     redistribution_ok = True
     compartments = ("Q", "GW")
+    coverage = _COVERAGE_BBOXES
 
     def fetch_stations(
         self,

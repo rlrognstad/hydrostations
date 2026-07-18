@@ -26,7 +26,8 @@ _BASE_URL = "https://waterservices.usgs.gov/nwis/site/"
 # Coarse coverage area (CONUS + AK/HI/PR). Used to skip fetching entirely
 # when the requested bbox can't possibly intersect NWIS data -- otherwise a
 # bbox this large would also trip NWIS's own bounding-box size limit (~25
-# sq. degrees; larger requests 400).
+# sq. degrees; larger requests 400). Also exposed as the adapter's public
+# `coverage` attribute for hydrostations.coverage's static lookup.
 _COVERAGE_BBOXES = (
     BBox(min_lon=-125.0, min_lat=24.0, max_lon=-66.0, max_lat=50.0),  # CONUS
     BBox(min_lon=-170.0, min_lat=51.0, max_lon=-129.0, max_lat=72.0),  # Alaska
@@ -54,6 +55,7 @@ class NwisAdapter(StationAdapter):
     license = _LICENSE
     redistribution_ok = True
     compartments = ("Q", "GW")
+    coverage = _COVERAGE_BBOXES
 
     def fetch_stations(
         self,
@@ -61,7 +63,7 @@ class NwisAdapter(StationAdapter):
         bbox: BBox | None = None,
         compartment: str | None = None,
     ) -> gpd.GeoDataFrame:
-        if bbox is not None and not any(bboxes_intersect(bbox, c) for c in _COVERAGE_BBOXES):
+        if bbox is not None and not any(bboxes_intersect(bbox, c) for c in self.coverage):
             return stations_frame_from_records([])
 
         compartments = [compartment] if compartment else list(self.compartments)
