@@ -2,10 +2,9 @@ import pytest
 
 from hydrostations.adapters.hidroweb import HidroWebAdapter
 from hydrostations.adapters.sierem import SieremAdapter
-from hydrostations.adapters.wise import WiseAdapter
 from hydrostations.exceptions import AdapterNotImplementedError
 
-STUB_ADAPTERS = [WiseAdapter, HidroWebAdapter, SieremAdapter]
+STUB_ADAPTERS = [HidroWebAdapter, SieremAdapter]
 
 
 @pytest.mark.parametrize("adapter_cls", STUB_ADAPTERS)
