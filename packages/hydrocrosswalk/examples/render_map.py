@@ -25,6 +25,7 @@ from pathlib import Path
 import geopandas as gpd
 from shapely.geometry import Point, box
 
+from hydrocrosswalk.crosswalk import assign_crosswalk
 from hydrocrosswalk.h3grid import cell_to_polygon, cells_for_geometry
 from hydrocrosswalk.sources.geoboundaries import fetch_admin_boundaries
 from hydrocrosswalk.sources.hydrobasins import fetch_hydrobasins
@@ -136,7 +137,9 @@ def build_map_data() -> dict:
     all_basins = fetch_hydrobasins(region=REGION, level=HYDROBASINS_LEVEL)
     containing = all_basins[all_basins.contains(REFERENCE_POINT)]
     main_bas = containing.iloc[0]["MAIN_BAS"]
-    basins = all_basins[all_basins["MAIN_BAS"] == main_bas][["HYBAS_ID", "geometry"]]
+    basins = all_basins[all_basins["MAIN_BAS"] == main_bas][
+        ["HYBAS_ID", "PFAF_ID", "MAIN_BAS", "geometry"]
+    ]
 
     # admin (state) polygons genuinely extend far beyond the basin and DO
     # need a hard clip, or they'd render all the way out to e.g. Sydney/Melbourne.
@@ -144,6 +147,19 @@ def build_map_data() -> dict:
     admin = admin[~admin["shapeName"].isin(DROP_ADMIN_NAMES)]
     admin = gpd.clip(admin[["shapeName", "geometry"]], bbox_geom)
     admin = admin[~admin.geometry.is_empty & admin.geometry.notna()]
+
+    # get_stations(basin=...) only filters by the rectangular bbox, not the
+    # true basin polygon -- so it also returns stations from unrelated
+    # nearby catchments (e.g. coastal NSW rivers) that merely fall inside
+    # that rectangle. assign_crosswalk() does the precise point-in-polygon
+    # match against the real sub-basins fetched above; dropping unmatched
+    # rows keeps only stations actually inside the Murray-Darling basin.
+    stations = fetch_stations()
+    if stations is not None:
+        stations = assign_crosswalk(stations, h3_resolution=H3_RESOLUTION, basins=basins, admin=admin)
+        n_before = len(stations)
+        stations = stations[stations["hybas_id"].notna()]
+        print(f"stations: kept {len(stations)}/{n_before} actually inside the basin polygon")
 
     # H3 grid and the basin outline both come from the same unclipped union,
     # so all three (basins, boundary, h3) show the basin's real shape.
@@ -162,11 +178,6 @@ def build_map_data() -> dict:
     admin = admin[~admin.geometry.is_empty & admin.geometry.notna()]
 
     project, height = make_projector(BBOX, SVG_WIDTH)
-
-    stations = fetch_stations()
-    if stations is not None:
-        min_lon, min_lat, max_lon, max_lat = BBOX
-        stations = stations.cx[min_lon:max_lon, min_lat:max_lat]
 
     return {
         "width": SVG_WIDTH,
