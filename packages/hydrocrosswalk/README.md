@@ -24,6 +24,31 @@ This is a **pipeline, not a published dataset**: every call fetches fresh from
 HydroSHEDS and geoBoundaries and joins locally. Nothing is cached, bundled, or
 redistributed by this package — see "Licensing" below for why that matters.
 
+## Enriching someone else's points
+
+`build_crosswalk` generates a full H3 grid over a basin. If you already have
+points (station locations, sensor readings, anything with a `geometry`
+column) and just want each one tagged with its basin/admin/H3 cell, use
+`assign_crosswalk` instead — it doesn't care where the points came from:
+
+```python
+from hydrocrosswalk import assign_crosswalk
+
+enriched = assign_crosswalk(
+    my_points_gdf,
+    h3_resolution=6,
+    region="na",
+    hydrobasins_level=4,
+    countries=["USA"],
+)
+# -> my_points_gdf's own columns, plus h3_cell, hybas_id, pfaf_id, main_bas,
+#    and geoBoundaries admin fields
+```
+
+Pass pre-fetched `basins=`/`admin=` (from `fetch_hydrobasins`/
+`fetch_admin_boundaries`) instead of `region`/`hydrobasins_level`/`countries`
+to avoid re-downloading them across repeated calls against the same region.
+
 ## Performance
 
 A regional run (10 countries, 68 level-4 HydroBASINS sub-basins, H3 resolution 4,

@@ -7,9 +7,8 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
 
-# Aligned with WOI's compartment structure: streamflow, groundwater,
-# precipitation, and a catch-all for everything else (e.g. water quality)
-# until the cube's compartment structure grows a dedicated code for it.
+# Streamflow, groundwater, precipitation, and a catch-all for everything
+# else (e.g. water quality) until that gets its own dedicated code.
 COMPARTMENTS = ("Q", "GW", "P", "other")
 
 COLUMNS = (
