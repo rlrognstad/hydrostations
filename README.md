@@ -13,6 +13,10 @@ Each package ships its own `pyproject.toml`, dependencies, and tests, and is
 independently installable (`pip install ./packages/hydrostations`, etc.) — they're
 developed together because they share a common purpose, not because they're coupled.
 
+See [docs/crosswalk-and-stations-walkthrough.md](docs/crosswalk-and-stations-walkthrough.md)
+for a runbook walking through both packages together: generate a crosswalk, pull
+station data for the same region, then tag each station with its basin/H3 cell.
+
 ## Development
 
 ```bash
