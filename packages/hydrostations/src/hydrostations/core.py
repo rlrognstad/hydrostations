@@ -8,6 +8,7 @@ import pandas as pd
 
 from hydrostations.adapters.base import StationAdapter
 from hydrostations.adapters.bom import BomAdapter
+from hydrostations.adapters.ggmn import GgmnAdapter
 from hydrostations.adapters.hidroweb import HidroWebAdapter
 from hydrostations.adapters.nwis import NwisAdapter
 from hydrostations.adapters.sierem import SieremAdapter
@@ -24,6 +25,7 @@ def _default_registry() -> dict[str, StationAdapter]:
         "bom": BomAdapter(),
         "hidroweb": HidroWebAdapter(),
         "sierem": SieremAdapter(),
+        "ggmn": GgmnAdapter(),
     }
 
 
