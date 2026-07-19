@@ -63,6 +63,9 @@ NETWORK_COLOR_SLOTS: dict[str, str] = {
     "wise": "#e87ba4",  # slot 3 magenta
     "hidroweb": "#eda100",  # slot 4 yellow
     "sierem": "#1baf7a",  # slot 5 aqua
+    "eccc": "#eb6834",  # slot 6 orange
+    "hubeau": "#4a3aa7",  # slot 7 violet
+    "nrfa": "#e34948",  # slot 8 red
 }
 _FALLBACK_COLOR = "#898781"  # muted ink; used if a network has no assigned slot yet
 
