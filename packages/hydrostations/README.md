@@ -17,11 +17,12 @@ stations = get_stations(basin="niger", compartment="Q")
 
 Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
 **GGMN** (IGRAC, global groundwater), **WISE** (EEA, Europe), **HidroWeb**
-(ANA, Brazil). Stubbed, not yet implemented: **SIEREM** (HydroSciences
-Montpellier) — its module docstring explains the access model as last
-investigated (no live REST API; ~647 static per-basin KML files, no
-server-side spatial filtering, needs a bulk-fetch-then-filter design
-rather than a simple per-query adapter).
+(ANA, Brazil), **ECCC** (Water Survey of Canada), **Hub'Eau** (France, Q+GW),
+**NRFA** (UK National River Flow Archive). Stubbed, not yet implemented:
+**SIEREM** (HydroSciences Montpellier) — its module docstring explains the
+access model as last investigated (no live REST API; ~647 static per-basin
+KML files, no server-side spatial filtering, needs a bulk-fetch-then-filter
+design rather than a simple per-query adapter).
 
 Worth knowing: GGMN, WISE, and HidroWeb were *all* stubbed as "blocked" in
 the original design doc, and live investigation found each assumption
@@ -99,10 +100,11 @@ Every adapter returns a GeoDataFrame with the same columns:
 
 Sources are driven by a YAML register (`hydrostations/register/sources/*.yaml`), validated
 against pydantic models in `hydrostations.register`, and grouped by protocol under
-`hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server -- shared adapter
-classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE -- hand-written
-fetch logic, no second known user of either protocol), and `hydrostations.adapters.bulk`
-(SIEREM -- snapshot/file sources with no server-side spatial filter).
+`hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features --
+shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
+Hub'Eau -- hand-written fetch logic, no second known user of any of these), and
+`hydrostations.adapters.bulk` (SIEREM, NRFA -- sources with no server-side spatial filter,
+whether a static file snapshot or a live fetch-everything endpoint).
 
 `redistribution_ok` exists because not every source permits it (GRDC, once
 its adapter is built, will be the first `False` case) — code that consumes
