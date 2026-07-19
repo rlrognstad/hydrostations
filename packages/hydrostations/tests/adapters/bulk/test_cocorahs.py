@@ -53,6 +53,7 @@ def test_fetch_stations_parses_reporting_stations_only(
     assert row["source_id"] == "CO-LR-1"
     assert row["compartment"] == "P"
     assert row["source"] == "cocorahs"
+    assert row["source_class"] == "citizen"
     assert row["canonical_id"] == "cocorahs:CO-LR-1"
     assert row["elevation_m"] == 5000.0 * 0.3048
 

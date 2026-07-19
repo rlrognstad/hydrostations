@@ -71,6 +71,7 @@ class KiWisAdapter(SourceAdapter):
         cfg = self.entry.kiwis
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": row[cfg.id_field],
             "name": row.get(cfg.name_field),
             "lon": float(row[cfg.lon_field]),

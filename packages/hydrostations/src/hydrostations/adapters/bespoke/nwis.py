@@ -85,6 +85,7 @@ class NwisAdapter(SourceAdapter):
             records.append(
                 {
                     "source": self.source,
+                    "source_class": self.source_class,
                     "source_id": row.site_no,
                     "name": row.station_nm,
                     "lon": float(row.dec_long_va),

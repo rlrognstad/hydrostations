@@ -1,6 +1,7 @@
 source_id: nwis
 name: USGS National Water Information System
 operator: U.S. Geological Survey
+source_class: agency
 protocol: nwis_rdb
 endpoint: https://waterservices.usgs.gov/nwis/site/
 license: "Public domain (U.S. Geological Survey)"

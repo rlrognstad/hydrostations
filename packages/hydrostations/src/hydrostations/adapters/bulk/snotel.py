@@ -71,6 +71,7 @@ class SnotelAdapter(BulkFileAdapter):
         end_date = row.get("endDate")
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": row["stationTriplet"],
             "name": row.get("name"),
             "lon": row["longitude"],

@@ -8,8 +8,8 @@ returning a normalized GeoDataFrame with provenance.
 from hydrostations import get_stations
 
 stations = get_stations(basin="niger", compartment="Q")
-# -> GeoDataFrame: canonical_id, source, source_id, name, geometry,
-#    compartment, variables, first_obs, last_obs, wsi, license,
+# -> GeoDataFrame: canonical_id, source, source_id, source_class, name,
+#    geometry, compartment, variables, first_obs, last_obs, wsi, license,
 #    redistribution_ok, raw, retrieved_at, and more -- see Schema below
 ```
 
@@ -88,11 +88,14 @@ Every adapter returns a GeoDataFrame with the same columns:
 | `canonical_id` | `f"{source}:{source_id}"` -- provisional, not deduplicated across sources |
 | `source` | Register source id, e.g. `"nwis"`, `"bom"` (lowercase) |
 | `source_id` | Source-native station identifier |
+| `source_class` | `agency` (official hydrological/met service) / `research` (academic compilation or observatory, e.g. GGMN, SIEREM) / `citizen` (volunteer network, e.g. CoCoRaHS) |
 | `name` | Station name |
 | `geometry` | Point location (EPSG:4326) |
 | `compartment` | `Q` (streamflow) / `GW` (groundwater) / `P` (precipitation) / `SM` (soil moisture) / `ET` (evapotranspiration) / `SW` (surface water: lakes, reservoirs, coastal) / `SNOW` / `WQ` (water quality) |
 | `variables` | Native parameter code/type strings available at this station (not a canonical vocabulary yet) |
-| `positional_uncertainty_m` / `elevation_m` / `catchment_area_km2` / `reporting_interval` | Real fields, currently null for every adapter -- placeholders |
+| `elevation_m` | Populated by NRFA and SNOTEL/SCAN; null elsewhere |
+| `catchment_area_km2` | Populated by NRFA; null elsewhere |
+| `positional_uncertainty_m` / `reporting_interval` | Real fields, currently null for every adapter -- placeholders |
 | `first_obs` / `last_obs` | Period of record, where available |
 | `wsi` | WIGOS Station Identifier, where a crosswalk exists |
 | `license` | Source data license |

@@ -89,6 +89,7 @@ class WiseAdapter(SourceAdapter):
     def _row_to_record(self, row: dict, compartment: str) -> dict:
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": row["monitoringSiteIdentifier"],
             "name": row.get("monitoringSiteName"),
             "lon": row["lon"],

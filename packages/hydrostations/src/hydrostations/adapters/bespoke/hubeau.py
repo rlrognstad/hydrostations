@@ -76,6 +76,7 @@ class HubeauAdapter(SourceAdapter):
     ) -> dict:
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": str(row[ccfg.id_field]),
             "name": row.get(ccfg.name_field),
             "lon": row[ccfg.lon_field],

@@ -59,6 +59,7 @@ class NrfaAdapter(BulkFileAdapter):
     def _row_to_record(self, row: dict, compartment: str, cfg: NrfaConfig) -> dict:
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": str(row[cfg.id_field]),
             "name": row.get(cfg.name_field),
             "lon": row[cfg.lon_field],

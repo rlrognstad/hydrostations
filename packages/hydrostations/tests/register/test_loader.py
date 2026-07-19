@@ -7,6 +7,7 @@ _VALID_YAML = """\
 source_id: fixture_a
 name: Fixture A
 operator: Test Operator
+source_class: agency
 endpoint: https://example.com
 protocol: bulk_kml
 license: Public domain

@@ -1,6 +1,7 @@
 source_id: eccc
 name: Water Survey of Canada Hydrometric Network
 operator: Environment and Climate Change Canada (ECCC)
+source_class: agency
 protocol: ogc_features
 endpoint: https://api.weather.gc.ca/collections
 license: "Open Government Licence - Canada"

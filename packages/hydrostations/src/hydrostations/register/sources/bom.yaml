@@ -1,6 +1,7 @@
 source_id: bom
 name: Bureau of Meteorology Water Data Online
 operator: Australian Bureau of Meteorology
+source_class: agency
 protocol: kiwis
 endpoint: https://www.bom.gov.au/waterdata/services
 license: "CC BY 4.0 (Bureau of Meteorology, Australia)"

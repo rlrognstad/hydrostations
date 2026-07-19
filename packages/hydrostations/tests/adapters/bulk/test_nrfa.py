@@ -30,6 +30,7 @@ def test_fetch_stations_parses_all_stations(mocked_api: respx.MockRouter, regist
     assert row["name"] == "River at 1001"
     assert row["compartment"] == "Q"
     assert row["source"] == "nrfa"
+    assert row["source_class"] == "agency"
     assert row["canonical_id"] == "nrfa:1001"
     assert row["catchment_area_km2"] == 123.4
     assert str(row["first_obs"].date()) == "1980-01-01"

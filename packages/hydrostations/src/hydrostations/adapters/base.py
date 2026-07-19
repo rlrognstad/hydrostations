@@ -47,6 +47,7 @@ class SourceAdapter(ABC):
     def __init__(self, entry: SourceEntry) -> None:
         self.entry = entry
         self.source = entry.source_id
+        self.source_class = entry.source_class
         self.license = entry.license
         self.redistribution_ok = entry.redistribution_ok
         self.compartments = tuple(entry.compartments)

@@ -89,6 +89,7 @@ class WfsAdapter(SourceAdapter):
         lon, lat = feature["geometry"]["coordinates"]
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": str(props[collection.id_field]),
             "name": props.get(collection.name_field),
             "lon": lon,

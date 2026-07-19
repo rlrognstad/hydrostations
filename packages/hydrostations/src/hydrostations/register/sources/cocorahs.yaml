@@ -1,6 +1,7 @@
 source_id: cocorahs
 name: Community Collaborative Rain, Hail & Snow Network (CoCoRaHS)
 operator: CoCoRaHS (Colorado State University / NOAA)
+source_class: citizen
 protocol: cocorahs_export
 endpoint: https://data.cocorahs.org/cocorahs/export/exportstations.aspx
 license: "CC BY 3.0, CoCoRaHS"

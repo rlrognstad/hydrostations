@@ -76,6 +76,7 @@ class ArcGisFeatureServerAdapter(SourceAdapter):
         variable = props.get(cfg.variable_field) if cfg.variable_field else None
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": str(props[cfg.id_field]),
             "name": props.get(cfg.name_field),
             "lon": lon,
