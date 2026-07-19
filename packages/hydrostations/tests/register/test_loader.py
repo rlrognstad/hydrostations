@@ -31,6 +31,7 @@ def test_load_entries_reads_real_production_register():
         "eccc",
         "hubeau",
         "nrfa",
+        "snotel",
     }
 
 
