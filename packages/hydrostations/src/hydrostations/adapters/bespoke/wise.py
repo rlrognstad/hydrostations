@@ -8,7 +8,7 @@ station table.
 
 Compartment is derived from the table's `specialisedZoneType` column
 (verified live): "riverWaterBody" -> Q, "groundWaterBody" -> GW, and
-"lakeWaterBody"/"coastalWaterBody"/"transitionalWaterBody" -> other. Rows
+"lakeWaterBody"/"coastalWaterBody"/"transitionalWaterBody" -> SW. Rows
 with a null/unrelated zone type (e.g. "riverBasinDistrictSubUnit", which is
 an administrative area, not a station) are excluded.
 

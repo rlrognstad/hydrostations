@@ -69,14 +69,14 @@ def test_fetch_stations_bbox_and_zone_type_in_query(mocked_api: respx.MockRouter
     assert "lat BETWEEN 46.0 AND 47.0" in query
 
 
-def test_fetch_stations_other_compartment_maps_multiple_zone_types(
+def test_fetch_stations_sw_compartment_maps_multiple_zone_types(
     mocked_api: respx.MockRouter, register_entries
 ):
     route = mocked_api.get("https://discodata.eea.europa.eu/sql").mock(
         return_value=httpx.Response(200, json={"results": []})
     )
 
-    WiseAdapter(register_entries["wise"]).fetch_stations(compartment="other")
+    WiseAdapter(register_entries["wise"]).fetch_stations(compartment="SW")
 
     query = dict(route.calls[0].request.url.params)["query"]
     assert "lakeWaterBody" in query

@@ -8,7 +8,7 @@ license: >
   Agency (EEA) -- default EEA data policy unless a specific dataset states
   otherwise; see https://www.eea.europa.eu/en/datahub/eea-data-policy
 redistribution_ok: true
-compartments: [Q, GW, other]
+compartments: [Q, GW, SW]
 coverage:
   - [-25.0, 34.0, 45.0, 71.0]  # Europe, WISE-SoE's WFD reporting scope
 notes: >
@@ -21,4 +21,4 @@ wise:
   zone_types_by_compartment:
     Q: [riverWaterBody]
     GW: [groundWaterBody]
-    other: [lakeWaterBody, coastalWaterBody, transitionalWaterBody]
+    SW: [lakeWaterBody, coastalWaterBody, transitionalWaterBody]

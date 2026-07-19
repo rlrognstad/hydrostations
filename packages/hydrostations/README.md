@@ -40,7 +40,7 @@ from hydrostations import lookup_coverage
 from shapely.geometry import box
 
 lookup_coverage(box(4.0, 50.0, 7.0, 54.0))
-# -> {"wise": ["Q", "GW", "other"], "ggmn": ["GW"]}
+# -> {"wise": ["Q", "GW", "SW"], "ggmn": ["GW"]}
 ```
 
 `basin=` resolution is a small name-to-bounding-box lookup
@@ -87,7 +87,7 @@ Every adapter returns a GeoDataFrame with the same columns:
 | `source_id` | Source-native station identifier |
 | `name` | Station name |
 | `geometry` | Point location (EPSG:4326) |
-| `compartment` | `Q` (streamflow) / `GW` (groundwater) / `P` (precipitation) / `other` |
+| `compartment` | `Q` (streamflow) / `GW` (groundwater) / `P` (precipitation) / `SM` (soil moisture) / `ET` (evapotranspiration) / `SW` (surface water: lakes, reservoirs, coastal) / `SNOW` / `WQ` (water quality) |
 | `variables` | Native parameter code/type strings available at this station (not a canonical vocabulary yet) |
 | `positional_uncertainty_m` / `elevation_m` / `catchment_area_km2` / `reporting_interval` | Real fields, currently null for every adapter -- placeholders |
 | `first_obs` / `last_obs` | Period of record, where available |
