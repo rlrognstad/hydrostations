@@ -1,0 +1,36 @@
+source_id: ghcnd
+name: GHCN-Daily (Global Historical Climatology Network - Daily)
+operator: NOAA National Centers for Environmental Information (NCEI)
+source_class: agency
+protocol: ghcnd_bulk
+endpoint: https://noaa-ghcn-pds.s3.amazonaws.com
+license: >-
+  Public Domain (NOAA/NCEI, U.S. Government work); citation requested --
+  Menne et al. 2012, "An overview of the Global Historical Climatology
+  Network-Daily Database," J. Atmos. Oceanic Technol., 29, 897-910.
+redistribution_ok: true
+compartments: [P]
+coverage:
+  - [-180.0, -90.0, 180.0, 90.0]  # genuinely global
+notes: >
+  Confirmed live: two anonymous, no-auth fixed-width text files on a
+  public S3 bucket (noaa-ghcn-pds.s3.amazonaws.com) -- distinct from
+  NOAA's documented CDO API (ncei.noaa.gov/cdo-web/api), which requires a
+  token. ghcnd-stations.txt (~122k stations) carries id/lat/lon/elevation/
+  name; ghcnd-inventory.txt (~782k rows) carries which element each
+  station reports and over what year range -- 130,421 stations report
+  PRCP, confirmed live via direct inspection. Both fetched once per call
+  regardless of how many compartments are requested, then filtered
+  client-side (BulkFileAdapter), same shape as SIEREM/NRFA/SNOTEL/
+  CoCoRaHS. elevation_m is genuinely already in meters here (confirmed
+  against known Colorado high-altitude stations) -- the dataset's own
+  README states -999.9 as the "missing elevation" sentinel, and 4,619
+  real stations actually use it, confirmed live; handled as null rather
+  than a literal below-sea-level value. first_obs/last_obs are derived
+  from the inventory's year-only FIRSTYEAR/LASTYEAR fields (Jan 1 / Dec
+  31 of those years) -- a real precision limitation, not exact dates.
+ghcnd:
+  stations_path: ghcnd-stations.txt
+  inventory_path: ghcnd-inventory.txt
+  element_by_compartment:
+    P: [PRCP]

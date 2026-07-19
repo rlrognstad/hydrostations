@@ -217,6 +217,19 @@ class CocorahsEntry(SourceEntryBase):
     cocorahs: CocorahsConfig
 
 
+class GhcndConfig(BaseModel):
+    stations_path: str = "ghcnd-stations.txt"
+    inventory_path: str = "ghcnd-inventory.txt"
+    # e.g. {P: [PRCP]} -- a station is included in a compartment if the
+    # inventory lists any of that compartment's elements for it.
+    element_by_compartment: dict[str, list[str]]
+
+
+class GhcndEntry(SourceEntryBase):
+    protocol: Literal["ghcnd_bulk"]
+    ghcnd: GhcndConfig
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -228,7 +241,8 @@ SourceEntry = Annotated[
     | SieremEntry
     | NrfaEntry
     | SnotelEntry
-    | CocorahsEntry,
+    | CocorahsEntry
+    | GhcndEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)
