@@ -15,6 +15,7 @@ import yaml
 from pydantic import ValidationError
 
 from hydrostations.adapters.base import SourceAdapter
+from hydrostations.adapters.bespoke.hubeau import HubeauAdapter
 from hydrostations.adapters.bespoke.nwis import NwisAdapter
 from hydrostations.adapters.bespoke.wise import WiseAdapter
 from hydrostations.adapters.bulk.sierem import SieremAdapter
@@ -37,6 +38,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "ogc_features": OgcFeaturesAdapter,
     "nwis_rdb": NwisAdapter,
     "wise_discodata": WiseAdapter,
+    "hubeau": HubeauAdapter,
     "bulk_kml": SieremAdapter,
 }
 
