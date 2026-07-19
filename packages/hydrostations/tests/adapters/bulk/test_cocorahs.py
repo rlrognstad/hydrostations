@@ -103,6 +103,28 @@ def test_fetch_stations_filters_by_bbox_client_side(mocked_api: respx.MockRouter
     assert frame.iloc[0]["source_id"] == "CO-1"
 
 
+def test_fetch_stations_no_compartment_returns_both_p_and_snow_from_one_fetch(
+    mocked_api: respx.MockRouter, register_entries
+):
+    entry = register_entries["cocorahs"]
+    entry = entry.model_copy(
+        update={"cocorahs": entry.cocorahs.model_copy(update={"states": ["CO"]})}
+    )
+
+    route = mocked_api.get("https://data.cocorahs.org/cocorahs/export/exportstations.aspx").mock(
+        return_value=httpx.Response(200, text=_stations_xml(_station("CO-1")))
+    )
+
+    frame = CocorahsAdapter(entry).fetch_stations()
+
+    # One physical station, two compartments -- but only one HTTP request:
+    # P and SNOW come from the same daily report form, not separate queries.
+    assert route.call_count == 1
+    assert set(frame["compartment"]) == {"P", "SNOW"}
+    assert len(frame) == 2
+    assert set(frame["source_id"]) == {"CO-1"}
+
+
 def test_fetch_stations_unsupported_compartment_skips_request(
     mocked_api: respx.MockRouter, register_entries
 ):
