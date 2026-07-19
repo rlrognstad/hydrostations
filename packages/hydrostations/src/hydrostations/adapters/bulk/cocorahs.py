@@ -1,16 +1,25 @@
 """CoCoRaHS (Community Collaborative Rain, Hail & Snow Network) adapter.
 
-Precipitation-only volunteer observer network, US-focused. Confirmed
-live: `api2.cocorahs.org`'s documented Web API requires an API key
-("Authorization has been denied for this request" without one) -- but a
-separate, genuinely anonymous XML export endpoint
+Volunteer observer network, US-focused, covering both P and SNOW: the
+same daily report form (and so the same station list) carries rainfall,
+hail, *and* snowfall/snow-depth observations -- there is no separate
+"snow network" of different stations, so both compartments are emitted
+from one fetch per state rather than two.
+
+Confirmed live: `api2.cocorahs.org`'s documented Web API requires an API
+key ("Authorization has been denied for this request" without one) --
+but a separate, genuinely anonymous XML export endpoint
 (`data.cocorahs.org/cocorahs/export/exportstations.aspx`) is real and
 unauthenticated. It has no bbox filter and no "all states" mode
 (`state=a` crashed the server with an OutOfMemoryException) -- only a
 real per-state filter, so the full inventory is one request per
 jurisdiction (see the register entry's `cocorahs.states` list),
 aggregated, then filtered client-side via
-`BulkFileAdapter._filter_by_bbox()`, same shape as NRFA/SNOTEL.
+`BulkFileAdapter._filter_by_bbox()`, same shape as NRFA/SNOTEL. Each
+state is fetched once regardless of how many compartments are
+requested -- the per-state fetch is the expensive part (~38s for all
+51 jurisdictions), duplicating it per compartment would double that for
+no reason since the same response covers both.
 
 Real gotcha, confirmed live: the "currently reporting" status string is
 "Reporting", not "Active" -- a naive "Active" filter silently returns
@@ -48,17 +57,20 @@ class CocorahsAdapter(BulkFileAdapter):
         bbox: BBox | None = None,
         compartment: str | None = None,
     ) -> gpd.GeoDataFrame:
-        if compartment is not None and compartment not in self.compartments:
+        compartments = [compartment] if compartment else list(self.compartments)
+        compartments = [c for c in compartments if c in self.compartments]
+        if not compartments:
             return stations_frame_from_records([])
 
-        c = compartment or self.compartments[0]
         records = []
         for state in self.entry.cocorahs.states:
-            records.extend(self._fetch_state(state, c))
+            stations = self._fetch_state_stations(state)
+            for station in stations:
+                records.extend(self._station_to_record(station, c) for c in compartments)
         frame = stations_frame_from_records(records)
         return self._filter_by_bbox(frame, bbox)
 
-    def _fetch_state(self, state: str, compartment: str) -> list[dict]:
+    def _fetch_state_stations(self, state: str) -> list[ElementTree.Element]:
         response = httpx.get(
             self.entry.endpoint,
             params={"format": "v", "state": state},
@@ -66,12 +78,11 @@ class CocorahsAdapter(BulkFileAdapter):
         )
         response.raise_for_status()
         root = ElementTree.fromstring(response.text)
-        records = []
-        for station in root.iter("Station"):
-            if station.findtext("StationStatus") != _REPORTING_STATUS:
-                continue
-            records.append(self._station_to_record(station, compartment))
-        return records
+        return [
+            station
+            for station in root.iter("Station")
+            if station.findtext("StationStatus") == _REPORTING_STATUS
+        ]
 
     def _station_to_record(self, station: ElementTree.Element, compartment: str) -> dict:
         raw = {child.tag: child.text for child in station}
