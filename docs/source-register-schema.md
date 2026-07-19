@@ -7,7 +7,7 @@ This documents the *input* schema — how a source is declared in
 
 One YAML file = one source. Every file is validated at load time against the
 pydantic models in `hydrostations.register.models`, discriminated by its
-`protocol` field into one of eleven entry types. `protocol` picks both the
+`protocol` field into one of twelve entry types. `protocol` picks both the
 adapter class that serves the source (`register/loader.py`'s
 `_ADAPTER_CLASSES`) and the shape of that entry's protocol-specific config
 block.
@@ -31,7 +31,7 @@ block.
 | `skip_out_of_coverage` | `bool` | no (`false`) | Opt-in: skip fetching entirely when the query bbox can't intersect `coverage`. Only NWIS sets this, to dodge its own bbox-size API limit — coverage boxes are coarse, so this isn't applied by default. |
 | `notes` | `str \| None` | no | Free text — real findings from live investigation belong here, not just aspirational docs. |
 
-## The eleven entry types
+## The twelve entry types
 
 Every entry type adds one `Literal["..."]` protocol tag and, except for
 `SieremEntry`, one nested config block carrying whatever that protocol
@@ -59,6 +59,7 @@ classDiagram
     SourceEntryBase <|-- NrfaEntry
     SourceEntryBase <|-- SnotelEntry
     SourceEntryBase <|-- CocorahsEntry
+    SourceEntryBase <|-- GhcndEntry
 
     KiwisEntry --> KiwisConfig : kiwis
     WfsEntry --> WfsConfig : wfs
@@ -70,6 +71,7 @@ classDiagram
     NrfaEntry --> NrfaConfig : nrfa
     SnotelEntry --> SnotelConfig : snotel
     CocorahsEntry --> CocorahsConfig : cocorahs
+    GhcndEntry --> GhcndConfig : ghcnd
 
     class KiwisEntry { protocol: "kiwis" }
     class WfsEntry { protocol: "wfs" }
@@ -82,6 +84,7 @@ classDiagram
     class NrfaEntry { protocol: "nrfa_ws" }
     class SnotelEntry { protocol: "snotel_awdb" }
     class CocorahsEntry { protocol: "cocorahs_export" }
+    class GhcndEntry { protocol: "ghcnd_bulk" }
 ```
 
 ### Protocol adapters (`adapters/protocols/`) — one class, many real agencies
@@ -152,6 +155,9 @@ params), filter client-side via `BulkFileAdapter._filter_by_bbox()`.
 
 **`CocorahsEntry`** (`protocol: cocorahs_export`) — CoCoRaHS's anonymous XML export, no bbox and no "all states" mode. Real user: **cocorahs**.
 `cocorahs.states`: `list[str]` — the jurisdiction list to iterate (one HTTP request per state; there's no other way to assemble the full inventory).
+
+**`GhcndEntry`** (`protocol: ghcnd_bulk`) — GHCN-Daily's two anonymous fixed-width text files on public S3, no spatial filter at all. Real user: **ghcnd**.
+`ghcnd.stations_path` / `inventory_path`: `str` (filenames on the S3 bucket). `ghcnd.element_by_compartment`: `dict[compartment, list[str]]`, e.g. `{P: [PRCP]}` — a station is included in a compartment if the inventory lists any of its configured element codes.
 
 ## Worked example
 

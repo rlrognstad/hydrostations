@@ -19,8 +19,9 @@ Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
 **GGMN** (IGRAC, global groundwater), **WISE** (EEA, Europe), **HidroWeb**
 (ANA, Brazil), **ECCC** (Water Survey of Canada), **Hub'Eau** (France, Q+GW),
 **NRFA** (UK National River Flow Archive), **SNOTEL/SCAN** (USDA NRCS, first
-real SNOW + SM sources), **CoCoRaHS** (US volunteer precipitation network).
-Stubbed, not yet implemented: **SIEREM** (HydroSciences Montpellier) — its
+real SNOW + SM sources), **CoCoRaHS** (US volunteer network, P + SNOW),
+**GHCN-Daily** (NOAA/NCEI, global precipitation). Stubbed, not yet
+implemented: **SIEREM** (HydroSciences Montpellier) — its
 module docstring explains the access model as last investigated (no live
 REST API; ~647 static per-basin KML files, no server-side spatial
 filtering, needs a bulk-fetch-then-filter design rather than a simple
@@ -108,9 +109,9 @@ against pydantic models in `hydrostations.register`, and grouped by protocol und
 `hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features --
 shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
 Hub'Eau -- hand-written fetch logic, no second known user of any of these), and
-`hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS -- sources with no
-server-side spatial filter, whether a static file snapshot, a live fetch-everything
-endpoint, or a live fetch-per-jurisdiction endpoint).
+`hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily -- sources
+with no server-side spatial filter, whether a static file snapshot, a live
+fetch-everything endpoint, or a live fetch-per-jurisdiction endpoint).
 
 `redistribution_ok` exists because not every source permits it (GRDC, once
 its adapter is built, will be the first `False` case) — code that consumes
