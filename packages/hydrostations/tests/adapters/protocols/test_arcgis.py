@@ -2,7 +2,11 @@ import httpx
 import respx
 
 from hydrostations.adapters.base import BBox
-from hydrostations.adapters.hidroweb import HidroWebAdapter
+from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
+
+# Tested against the real HidroWeb register entry -- our only current
+# arcgis_feature_server instance -- which also doubles as a regression
+# check that the generalized adapter still serves HidroWeb correctly.
 
 
 def _feature(
@@ -20,7 +24,9 @@ def test_fetch_stations_parses_single_page(mocked_api: respx.MockRouter, registe
         return_value=httpx.Response(200, json={"features": [_feature(1), _feature(2)]})
     )
 
-    frame = HidroWebAdapter(register_entries["hidroweb"]).fetch_stations(compartment="Q")
+    frame = ArcGisFeatureServerAdapter(register_entries["hidroweb"]).fetch_stations(
+        compartment="Q"
+    )
 
     assert len(frame) == 2
     row = frame.iloc[0]
@@ -32,6 +38,20 @@ def test_fetch_stations_parses_single_page(mocked_api: respx.MockRouter, registe
     assert row["raw"]["Codigo"] == 1
     assert frame.geometry.iloc[0].x == -60.0
     assert frame.geometry.iloc[0].y == -3.0
+
+
+def test_fetch_stations_uses_configured_variable_field(
+    mocked_api: respx.MockRouter, register_entries
+):
+    mocked_api.get(url__regex=r"snirh\.gov\.br.*query").mock(
+        return_value=httpx.Response(200, json={"features": [_feature(1)]})
+    )
+
+    frame = ArcGisFeatureServerAdapter(register_entries["hidroweb"]).fetch_stations(
+        compartment="Q"
+    )
+
+    assert frame.iloc[0]["variables"] == ["Fluviométrica"]
 
 
 def test_fetch_stations_paginates_until_short_page(mocked_api: respx.MockRouter, register_entries):
@@ -46,7 +66,7 @@ def test_fetch_stations_paginates_until_short_page(mocked_api: respx.MockRouter,
         httpx.Response(200, json={"features": short_page}),
     ]
 
-    frame = HidroWebAdapter(entry).fetch_stations(compartment="Q")
+    frame = ArcGisFeatureServerAdapter(entry).fetch_stations(compartment="Q")
 
     assert len(frame) == page_size + 2
     assert route.call_count == 2
@@ -61,7 +81,7 @@ def test_fetch_stations_where_clause_matches_compartment(
         return_value=httpx.Response(200, json={"features": []})
     )
 
-    HidroWebAdapter(register_entries["hidroweb"]).fetch_stations(compartment="P")
+    ArcGisFeatureServerAdapter(register_entries["hidroweb"]).fetch_stations(compartment="P")
 
     where = dict(route.calls[0].request.url.params)["where"]
     assert "Pluviométrica" in where
@@ -72,7 +92,7 @@ def test_fetch_stations_includes_bbox_geometry(mocked_api: respx.MockRouter, reg
         return_value=httpx.Response(200, json={"features": []})
     )
 
-    HidroWebAdapter(register_entries["hidroweb"]).fetch_stations(
+    ArcGisFeatureServerAdapter(register_entries["hidroweb"]).fetch_stations(
         bbox=BBox(min_lon=-61.0, min_lat=-4.0, max_lon=-59.0, max_lat=-2.0), compartment="Q"
     )
 
@@ -86,5 +106,7 @@ def test_fetch_stations_unsupported_compartment_skips_request(
 ):
     # No route registered -- if the adapter made a request anyway, respx
     # would raise for the unmatched call.
-    frame = HidroWebAdapter(register_entries["hidroweb"]).fetch_stations(compartment="GW")
+    frame = ArcGisFeatureServerAdapter(register_entries["hidroweb"]).fetch_stations(
+        compartment="GW"
+    )
     assert frame.empty

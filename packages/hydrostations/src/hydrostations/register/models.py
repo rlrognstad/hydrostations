@@ -96,6 +96,11 @@ class ArcGisConfig(BaseModel):
     name_field: str
     out_fields: list[str]
     where_by_compartment: dict[str, str]
+    # Optional: a field whose value represents the "native variable" for a
+    # record (e.g. HidroWeb's TipoEstacao). Not every ArcGIS Feature Service
+    # has an equivalent single field, so this stays config-driven rather
+    # than assumed.
+    variable_field: str | None = None
 
 
 class ArcGisEntry(SourceEntryBase):

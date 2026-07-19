@@ -21,6 +21,7 @@ arcgis:
   id_field: Codigo
   name_field: Nome
   out_fields: [Codigo, Nome, TipoEstacao]
+  variable_field: TipoEstacao
   where_by_compartment:
     Q: "TipoEstacao='Fluviométrica'"
     P: "TipoEstacao='Pluviométrica'"

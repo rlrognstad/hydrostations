@@ -1,30 +1,16 @@
-"""HidroWeb / SNIRH (ANA, Brazil) adapter.
+"""Generic Esri ArcGIS Feature Server protocol adapter.
 
-ANA's modern `hidrowebservice` REST API does require an auth token, but
-that's only for downloading actual time-series values. The station
-*inventory* -- location, name, type, what's operational -- is served
-separately, openly, through a standard Esri ArcGIS Feature Service on
-ANA's SNIRH open-data platform (portal1.snirh.gov.br), no auth, verified
-live: 40,576 real stations nationwide, bbox-queryable, GeoJSON output.
+Esri ArcGIS Feature Server is a common de facto standard among government
+open-data portals worldwide (proven here by HidroWeb/SNIRH's real, no-auth
+deployment) -- a new agency on this protocol is a register entry, not a
+new Python class. Everything agency-specific (endpoint, field names,
+where-clause per compartment, and the optional "native variable" field)
+comes from the register entry's `arcgis` config block.
 
-Compartment is derived from the `TipoEstacao` field (verified live, exactly
-two values exist): "Fluviométrica" (streamflow) -> Q, "Pluviométrica"
-(rain gauge) -> P.
-
-The service's field list also carries per-measurement-type operational
-date ranges (e.g. `MedicaoDescargaLiquidaInicio`/`...Fim`), but which
-field is the "right" one for a given station's actual period of record is
-ambiguous from the inventory alone (a Fluviométrica station's `TipoEstacao`
-doesn't guarantee `MedicaoDescargaLiquida` is "Sim") -- first_obs/last_obs
-are left null here rather than guess, same as BoM.
-
-`maxRecordCount` is 1000; paginated via `resultOffset`.
-
-This is genuinely a reusable protocol (Esri ArcGIS Feature Server is common
-among government open-data portals worldwide) -- generalizing it into a
-shared `ArcGisFeatureServerAdapter` is a separate, later step. For now this
-still reads its config from the register entry rather than module
-constants.
+Bbox params (`geometryType=esriGeometryEnvelope`, `inSR=4326`,
+`spatialRel=esriSpatialRelIntersects`), `f=geojson`, and `resultOffset`
+pagination are fixed here as genuine Esri REST mechanics, not
+configurable -- they don't vary by deployment.
 """
 
 from __future__ import annotations
@@ -36,7 +22,7 @@ from hydrostations.adapters.base import BBox, SourceAdapter
 from hydrostations.schema import stations_frame_from_records
 
 
-class HidroWebAdapter(SourceAdapter):
+class ArcGisFeatureServerAdapter(SourceAdapter):
     protocol = "arcgis_feature_server"
 
     def fetch_stations(
@@ -87,6 +73,7 @@ class HidroWebAdapter(SourceAdapter):
         cfg = self.entry.arcgis
         props = feature["properties"]
         lon, lat = feature["geometry"]["coordinates"]
+        variable = props.get(cfg.variable_field) if cfg.variable_field else None
         return {
             "source": self.source,
             "source_id": str(props[cfg.id_field]),
@@ -94,7 +81,7 @@ class HidroWebAdapter(SourceAdapter):
             "lon": lon,
             "lat": lat,
             "compartment": compartment,
-            "variables": [props.get("TipoEstacao")] if props.get("TipoEstacao") else [],
+            "variables": [variable] if variable else [],
             "first_obs": None,
             "last_obs": None,
             "wsi": None,

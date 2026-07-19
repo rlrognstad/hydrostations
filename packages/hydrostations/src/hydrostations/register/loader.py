@@ -17,8 +17,8 @@ from pydantic import ValidationError
 from hydrostations.adapters.base import SourceAdapter
 from hydrostations.adapters.bom import BomAdapter
 from hydrostations.adapters.ggmn import GgmnAdapter
-from hydrostations.adapters.hidroweb import HidroWebAdapter
 from hydrostations.adapters.nwis import NwisAdapter
+from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
 from hydrostations.adapters.sierem import SieremAdapter
 from hydrostations.adapters.wise import WiseAdapter
 from hydrostations.exceptions import RegisterError
@@ -32,7 +32,7 @@ _SOURCES_DIR = Path(__file__).parent / "sources"
 _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "kiwis": BomAdapter,
     "wfs": GgmnAdapter,
-    "arcgis_feature_server": HidroWebAdapter,
+    "arcgis_feature_server": ArcGisFeatureServerAdapter,
     "nwis_rdb": NwisAdapter,
     "wise_discodata": WiseAdapter,
     "bulk_kml": SieremAdapter,
