@@ -319,10 +319,9 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
   }}
   .chip.active {{ background: var(--chip-active); color: var(--chip-active-fg); border-color: var(--chip-active); }}
 
-  .layout {{ display: flex; gap: 20px; align-items: flex-start; }}
+  .layout {{ display: flex; flex-direction: column; gap: 18px; }}
   .map-wrap {{
     position: relative;
-    flex: 1 1 auto;
     min-width: 0;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -348,7 +347,7 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     pointer-events: none;
   }}
 
-  .legend {{ flex: 0 0 240px; font-size: 13px; }}
+  .legend {{ font-size: 13px; border-top: 1px solid var(--border); padding-top: 16px; }}
   .legend h2 {{
     font-size: 11px;
     text-transform: uppercase;
@@ -356,6 +355,11 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     color: var(--muted);
     font-weight: 600;
     margin: 0 0 10px;
+  }}
+  .legend-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 2px 12px;
   }}
   .legend-item {{
     display: flex;
@@ -407,31 +411,21 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
   #tooltip.visible {{ opacity: 1; }}
   #tooltip .tt-kind {{ color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.03em; }}
 
-  @media (max-width: 720px) {{
-    .layout {{ flex-direction: column; }}
-    .legend {{ flex: 1 1 auto; }}
+  @media (max-width: 480px) {{
+    .legend-grid {{ grid-template-columns: 1fr; }}
   }}
 </style>
 
 <div class="viz-root">
   <div class="viz-card">
-    <h1>hydrostations: declared network coverage</h1>
-    <p class="subtitle">
-      Each network's own declared coverage area, generated directly from the
-      adapter registry -- not live station counts. Where a real country or
-      continent shape is available it's shown clipped to the declared area
-      (never beyond it); otherwise a plain rectangle. Solid borders are
-      wired-up adapters (verified with a live probe request when this page
-      was generated); dashed are stubs. Filter by compartment below, or
-      toggle networks in the legend.
-    </p>
     <div class="compartment-filter" id="compartment-filter"></div>
     <div class="layout">
       <div class="map-wrap">
         <svg id="map" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
-      <div class="legend" id="legend">
+      <div class="legend">
         <h2>Networks</h2>
+        <div class="legend-grid" id="legend"></div>
       </div>
     </div>
   </div>
@@ -597,14 +591,12 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     const swatchClass = 'swatch' + (net.implemented ? '' : ' stub');
     const swatchStyle = net.implemented ? ('background:' + net.color + ';') : '';
     const swatch = '<span class="' + swatchClass + '" style="' + swatchStyle + '"></span>';
-    const status = net.implemented ? 'implemented' : 'stub';
-    legend.appendChild(legendRow(net, swatch, net.network, net.compartments.join(', ') + ' &middot; ' + status));
+    legend.appendChild(legendRow(net, swatch, net.network, net.compartments.join(', ')));
   }}
   for (const net of data.global_networks) {{
     const swatchClass = 'swatch' + (net.implemented ? '' : ' stub');
     const swatch = '<span class="' + swatchClass + '" style="background: var(--global-wash);"></span>';
-    const status = net.implemented ? 'implemented' : 'stub';
-    legend.appendChild(legendRow(net, swatch, net.network + ' (global)', net.compartments.join(', ') + ' &middot; ' + status));
+    legend.appendChild(legendRow(net, swatch, net.network + ' (global)', net.compartments.join(', ')));
   }}
 }})();
 </script>
