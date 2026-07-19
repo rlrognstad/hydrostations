@@ -21,7 +21,17 @@ def test_load_entries_reads_real_production_register():
     # valid. No sources_dir override -- exercises the real default.
     entries = load_entries()
     ids = {e.source_id for e in entries}
-    assert ids == {"nwis", "wise", "bom", "ggmn", "hidroweb", "sierem", "eccc", "hubeau"}
+    assert ids == {
+        "nwis",
+        "wise",
+        "bom",
+        "ggmn",
+        "hidroweb",
+        "sierem",
+        "eccc",
+        "hubeau",
+        "nrfa",
+    }
 
 
 def test_load_entries_valid_fixture(tmp_path):

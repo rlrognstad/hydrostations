@@ -165,9 +165,22 @@ class WiseEntry(SourceEntryBase):
     wise: WiseConfig
 
 
-class BulkEntry(SourceEntryBase):
+class SieremEntry(SourceEntryBase):
     protocol: Literal["bulk_kml"]
     live: bool = False
+
+
+class NrfaConfig(BaseModel):
+    id_field: str = "id"
+    name_field: str = "name"
+    lon_field: str = "longitude"
+    lat_field: str = "latitude"
+    fields: list[str]
+
+
+class NrfaEntry(SourceEntryBase):
+    protocol: Literal["nrfa_ws"]
+    nrfa: NrfaConfig
 
 
 SourceEntry = Annotated[
@@ -178,7 +191,8 @@ SourceEntry = Annotated[
     | NwisEntry
     | WiseEntry
     | HubeauEntry
-    | BulkEntry,
+    | SieremEntry
+    | NrfaEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)
