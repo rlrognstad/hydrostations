@@ -1,0 +1,27 @@
+source_id: ggmn
+name: Global Groundwater Monitoring Network
+operator: International Groundwater Resources Assessment Centre (IGRAC)
+protocol: wfs
+endpoint: https://ggis.un-igrac.org/geoserver/ows
+license: >
+  CC BY-NC-SA 4.0 (Attribution-NonCommercial-ShareAlike) -- license varies
+  by contributing national authority ('varied_derived' in source metadata);
+  see https://ggis.un-igrac.org/catalogue/#/dataset/2472
+redistribution_ok: true
+compartments: [GW]
+coverage:
+  - [-180.0, -90.0, 180.0, 90.0]  # genuinely global, aggregates national data
+notes: >
+  No auth/MOU needed for read access -- an MOU only governs institutions
+  contributing data into GGMN. Verified live: 139,551 real points globally.
+wfs:
+  version: "2.0.0"
+  page_size: 1000
+  sort_by: id  # workaround: GeoServer NPEs on startIndex+bbox without an explicit sort
+  collections:
+    GW:
+      type_name: "groundwater:GGMN_Levels_Data"
+      id_field: id
+      name_field: name
+      start_field: first_recorded_measurement
+      end_field: last_recorded_measurement

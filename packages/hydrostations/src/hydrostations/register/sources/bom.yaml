@@ -1,0 +1,30 @@
+source_id: bom
+name: Bureau of Meteorology Water Data Online
+operator: Australian Bureau of Meteorology
+protocol: kiwis
+endpoint: https://www.bom.gov.au/waterdata/services
+license: "CC BY 4.0 (Bureau of Meteorology, Australia)"
+redistribution_ok: true
+compartments: [Q, GW]
+coverage:
+  - [112.0, -44.0, 154.0, -10.0]  # mainland Australia + Tasmania
+notes: >
+  KISTERS WISKI/KiWIS backend. Coverage bbox is a coarse hand declaration,
+  not verified against a live source. Verified live for both Q and GW.
+kiwis:
+  datasource: "0"
+  id_field: station_no
+  name_field: station_name
+  lat_field: station_latitude
+  lon_field: station_longitude
+  return_fields:
+    - station_no
+    - station_name
+    - station_latitude
+    - station_longitude
+    - station_id
+    - object_type
+    - parametertype_name
+  parameter_type_by_compartment:
+    Q: "Water Course Discharge"
+    GW: "Ground Water Level"

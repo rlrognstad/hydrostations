@@ -1,0 +1,17 @@
+source_id: sierem
+name: SIEREM
+operator: HydroSciences Montpellier
+protocol: bulk_kml
+endpoint: http://www.hydrosciences.fr/sierem/
+license: "Open, citation required (SIEREM / HydroSciences Montpellier)"
+redistribution_ok: true
+compartments: [Q, P]
+coverage:
+  - [-18.0, -5.0, 25.0, 25.0]    # West/Central Africa
+  - [-10.0, 30.0, 40.0, 45.0]    # Mediterranean rim
+live: false
+notes: >
+  Static portal, no queryable API -- ~647 real per-basin/per-type KML files
+  with individual station placemarks (confirmed live), no server-side
+  spatial filter. Not yet implemented: needs a bulk-fetch-then-filter
+  design, not a simple per-query adapter.
