@@ -1,0 +1,27 @@
+source_id: hidroweb
+name: HidroWeb / SNIRH
+operator: "Agencia Nacional de Aguas e Saneamento Basico (ANA)"
+protocol: arcgis_feature_server
+endpoint: >-
+  https://portal1.snirh.gov.br/server/rest/services/Esta%C3%A7%C3%B5es_Hidrometeorol%C3%B3gicas_SNIRH/FeatureServer/0/query
+license: >
+  Reproduction permitted with attribution ("E permitida a reproducao de
+  dados e de informacoes, desde que citada a fonte"), ANA/SNIRH --
+  see https://dadosabertos.ana.gov.br
+redistribution_ok: true
+compartments: [Q, P]
+coverage:
+  - [-74.0, -34.0, -34.0, 5.5]  # Brazil
+notes: >
+  ANA's hidrowebservice REST API needs auth, but only for time-series
+  downloads -- station inventory is this separate, open ArcGIS Feature
+  Service. Verified live: 40,576 real stations nationwide.
+arcgis:
+  page_size: 1000
+  id_field: Codigo
+  name_field: Nome
+  out_fields: [Codigo, Nome, TipoEstacao]
+  variable_field: TipoEstacao
+  where_by_compartment:
+    Q: "TipoEstacao='Fluviométrica'"
+    P: "TipoEstacao='Pluviométrica'"

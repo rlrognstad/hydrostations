@@ -58,11 +58,11 @@ _PROBE_BBOX = BBox(min_lon=-140.0, min_lat=10.0, max_lon=-139.999, max_lat=10.00
 # or split the map into facets -- the palette's own guidance for going
 # past 4-8 categorical series.
 NETWORK_COLOR_SLOTS: dict[str, str] = {
-    "NWIS": "#2a78d6",  # slot 1 blue
-    "BOM": "#008300",  # slot 2 green
-    "WISE": "#e87ba4",  # slot 3 magenta
-    "HIDROWEB": "#eda100",  # slot 4 yellow
-    "SIEREM": "#1baf7a",  # slot 5 aqua
+    "nwis": "#2a78d6",  # slot 1 blue
+    "bom": "#008300",  # slot 2 green
+    "wise": "#e87ba4",  # slot 3 magenta
+    "hidroweb": "#eda100",  # slot 4 yellow
+    "sierem": "#1baf7a",  # slot 5 aqua
 }
 _FALLBACK_COLOR = "#898781"  # muted ink; used if a network has no assigned slot yet
 
@@ -134,7 +134,7 @@ def build_map_data() -> dict:
     for adapter in _default_registry().values():
         implemented = _is_implemented(adapter)
         entry_base = {
-            "network": adapter.network,
+            "network": adapter.source,
             "compartments": list(adapter.compartments),
             "license": adapter.license,
             "implemented": implemented,
@@ -142,7 +142,7 @@ def build_map_data() -> dict:
         if _is_global(adapter.coverage):
             global_networks.append(entry_base)
             continue
-        color = NETWORK_COLOR_SLOTS.get(adapter.network, _FALLBACK_COLOR)
+        color = NETWORK_COLOR_SLOTS.get(adapter.source, _FALLBACK_COLOR)
         regional.append(
             {
                 **entry_base,

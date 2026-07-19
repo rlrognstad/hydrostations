@@ -1,0 +1,24 @@
+source_id: wise
+name: WISE (Water Information System for Europe)
+operator: European Environment Agency (EEA)
+protocol: wise_discodata
+endpoint: https://discodata.eea.europa.eu/sql
+license: >
+  ODC-BY (Open Data Commons Attribution License), European Environment
+  Agency (EEA) -- default EEA data policy unless a specific dataset states
+  otherwise; see https://www.eea.europa.eu/en/datahub/eea-data-policy
+redistribution_ok: true
+compartments: [Q, GW, other]
+coverage:
+  - [-25.0, 34.0, 45.0, 71.0]  # Europe, WISE-SoE's WFD reporting scope
+notes: >
+  Real queryable SQL-over-HTTP API, not bulk-download-only as originally
+  assumed. Query timeout is 20s server-side. Verified live: 23,195 real
+  river stations across Europe.
+wise:
+  table: "[WISE_SOE].[v1r1].[Waterbase_S_WISE_SpatialObject_DerivedData]"
+  page_size: 5000
+  zone_types_by_compartment:
+    Q: [riverWaterBody]
+    GW: [groundWaterBody]
+    other: [lakeWaterBody, coastalWaterBody, transitionalWaterBody]

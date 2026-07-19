@@ -50,7 +50,7 @@ this H3 cell?" for the whole region, whether or not a station exists there.
 from hydrostations import get_stations
 
 # basin= resolves to the same bbox used to build the crosswalk above.
-stations = get_stations(basin="murray-darling", network="bom", compartment="Q")
+stations = get_stations(basin="murray-darling", source="bom", compartment="Q")
 ```
 
 **Result:** 3,323 real streamflow stations from BoM Water Data Online.
