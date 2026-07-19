@@ -18,6 +18,7 @@ from hydrostations.adapters.base import SourceAdapter
 from hydrostations.adapters.bespoke.hubeau import HubeauAdapter
 from hydrostations.adapters.bespoke.nwis import NwisAdapter
 from hydrostations.adapters.bespoke.wise import WiseAdapter
+from hydrostations.adapters.bulk.cocorahs import CocorahsAdapter
 from hydrostations.adapters.bulk.nrfa import NrfaAdapter
 from hydrostations.adapters.bulk.sierem import SieremAdapter
 from hydrostations.adapters.bulk.snotel import SnotelAdapter
@@ -44,6 +45,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "bulk_kml": SieremAdapter,
     "nrfa_ws": NrfaAdapter,
     "snotel_awdb": SnotelAdapter,
+    "cocorahs_export": CocorahsAdapter,
 }
 
 
