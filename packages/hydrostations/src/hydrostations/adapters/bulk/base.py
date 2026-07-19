@@ -1,12 +1,16 @@
-"""Archetype for bulk/snapshot sources with no server-side spatial filter.
+"""Archetype for sources with no server-side spatial filter.
 
-A bulk source (e.g. SIEREM's per-basin KML files) has no query API: the only
-way to get stations is to download the whole file set and filter locally.
-This is architecturally distinct from the protocol/bespoke adapters, which
-all push `bbox`/`compartment` filtering to the remote server. Concrete
-adapters still implement `fetch_stations()` themselves (download + parse is
-inherently source-specific); this base class only provides the shared
-client-side bbox filter every bulk adapter needs.
+The defining trait is "no query API to push `bbox` into," not "static
+file" specifically -- SIEREM (per-basin KML files, `live: false`) is the
+static-snapshot case; NRFA (a live REST endpoint that just doesn't support
+spatial filtering -- `station=*` always returns every station) is the
+live-but-unfiltered case. Both need the whole inventory fetched, then
+filtered locally. This is architecturally distinct from the
+protocol/bespoke adapters, which all push `bbox`/`compartment` filtering
+to the remote server. Concrete adapters still implement `fetch_stations()`
+themselves (fetching + parsing is inherently source-specific); this base
+class only provides the shared client-side bbox filter every adapter here
+needs.
 """
 
 from __future__ import annotations

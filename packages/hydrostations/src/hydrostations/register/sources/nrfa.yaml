@@ -1,0 +1,34 @@
+source_id: nrfa
+name: National River Flow Archive
+operator: UK Centre for Ecology & Hydrology (UKCEH)
+protocol: nrfa_ws
+endpoint: https://nrfaapps.ceh.ac.uk/nrfa/ws/station-info
+license: >-
+  UKCEH NRFA Data Terms and Conditions (click-through licence; free for
+  commercial and non-commercial use with attribution -- "Data from the UK
+  National River Flow Archive"). Caveat: API responses may not be cached
+  beyond 30 calendar days except for temporary performance improvement --
+  relevant for any downstream caching layer, not enforced by this adapter.
+redistribution_ok: true
+compartments: [Q]
+coverage:
+  - [-8.7, 49.8, 2.0, 60.9]  # UK, incl. Northern Ireland and Shetland
+live: true
+notes: >
+  Confirmed live: clean JSON REST (station-info web service), but NO
+  server-side spatial filter exists -- station=* returns all ~1,601
+  stations' metadata in one call; bbox filtering is applied client-side
+  via BulkFileAdapter._filter_by_bbox() (this is NRFA's real access model,
+  not the SOS+WaterML2 the original design spec assumed). Uses
+  BulkFileAdapter despite being a live endpoint (live: true) because the
+  archetype's defining trait is "no server-side spatial filter," not
+  "static file" -- SIEREM is the static-file case, this is the
+  live-but-unfiltered case. catchment-area maps directly to
+  catchment_area_km2 (first adapter to populate that previously-always-null
+  field); gdf-start-date/gdf-end-date give a real first_obs/last_obs.
+nrfa:
+  id_field: id
+  name_field: name
+  lon_field: longitude
+  lat_field: latitude
+  fields: [id, name, latitude, longitude, catchment-area, gdf-start-date, gdf-end-date]

@@ -18,6 +18,7 @@ from hydrostations.adapters.base import SourceAdapter
 from hydrostations.adapters.bespoke.hubeau import HubeauAdapter
 from hydrostations.adapters.bespoke.nwis import NwisAdapter
 from hydrostations.adapters.bespoke.wise import WiseAdapter
+from hydrostations.adapters.bulk.nrfa import NrfaAdapter
 from hydrostations.adapters.bulk.sierem import SieremAdapter
 from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
 from hydrostations.adapters.protocols.kiwis import KiWisAdapter
@@ -40,6 +41,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "wise_discodata": WiseAdapter,
     "hubeau": HubeauAdapter,
     "bulk_kml": SieremAdapter,
+    "nrfa_ws": NrfaAdapter,
 }
 
 
