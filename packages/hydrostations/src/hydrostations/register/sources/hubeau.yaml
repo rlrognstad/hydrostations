@@ -1,6 +1,7 @@
 source_id: hubeau
 name: Hub'Eau
 operator: Systeme d'Information sur l'Eau (SIE) - OFB / BRGM / Schapi, France
+source_class: agency
 protocol: hubeau
 endpoint: https://hubeau.eaufrance.fr/api
 license: "Etalab Open License 2.0 (Licence Ouverte), France"

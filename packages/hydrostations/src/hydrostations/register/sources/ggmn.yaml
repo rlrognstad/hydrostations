@@ -1,6 +1,11 @@
 source_id: ggmn
 name: Global Groundwater Monitoring Network
 operator: International Groundwater Resources Assessment Centre (IGRAC)
+# IGRAC is a UNESCO-affiliated international knowledge/research centre that
+# compiles submissions from many national services, not itself a national
+# hydrological agency -- closer to the spec's "research compilation" class
+# (same category as GSIM/ISMN/FLUXNET) than to a single agency's own feed.
+source_class: research
 protocol: wfs
 endpoint: https://ggis.un-igrac.org/geoserver/ows
 license: >

@@ -89,6 +89,7 @@ class CocorahsAdapter(BulkFileAdapter):
         elevation_ft = raw.get("Elevation")
         return {
             "source": self.source,
+            "source_class": self.source_class,
             "source_id": raw["StationNumber"],
             "name": raw.get("StationName"),
             "lon": float(raw["Longitude"]),

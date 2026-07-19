@@ -13,6 +13,11 @@ from shapely.geometry import Point
 # surface water (lakes/reservoirs/coastal), snow, water quality.
 COMPARTMENTS = ("Q", "GW", "P", "SM", "ET", "SW", "SNOW", "WQ")
 
+# agency: official national/subnational hydrological or met service.
+# research: academic compilation or observatory (e.g. SIEREM, GGMN).
+# citizen: volunteer / crowd-sourced network (e.g. CoCoRaHS).
+SOURCE_CLASSES = ("agency", "research", "citizen")
+
 
 def parse_timestamp(value: str | None) -> pd.Timestamp:
     """Normalize a source's native timestamp string to the tz-naive form
@@ -46,6 +51,12 @@ class Station:
     adapter leaves them null -- none of the five live sources expose enough
     to populate them yet. That's a placeholder, not an oversight.
 
+    `source_class` lets a downstream coverage/consumer decide whether to
+    include, exclude, or weight a source differently -- an official agency
+    feed, an academic research compilation, and a volunteer citizen-science
+    network carry very different liveness/quality expectations even when
+    their `Station` records look identical.
+
     `variables` carries each source's *native* parameter code/type string
     (e.g. NWIS's "00060", BoM's "Water Course Discharge"), not a canonical
     vocabulary -- building a real cross-source vocabulary is unstarted work.
@@ -58,6 +69,7 @@ class Station:
     canonical_id: str            # f"{source}:{source_id}" -- provisional, not deduplicated
     source: str                  # register source_id, e.g. "bom" (lowercase)
     source_id: str               # native id at source
+    source_class: str            # one of SOURCE_CLASSES -- agency/research/citizen
     wsi: str | None              # WMO WIGOS Station Identifier, where known
     name: str | None
     compartment: str             # one of COMPARTMENTS
@@ -79,6 +91,7 @@ COLUMNS = (
     "canonical_id",
     "source",
     "source_id",
+    "source_class",
     "wsi",
     "name",
     "compartment",
@@ -100,6 +113,7 @@ _NON_GEOMETRY_DTYPES = {
     "canonical_id": "string",
     "source": "string",
     "source_id": "string",
+    "source_class": "string",
     "wsi": "string",
     "name": "string",
     "compartment": "string",
@@ -179,3 +193,6 @@ def validate_stations_frame(frame: gpd.GeoDataFrame) -> None:
     bad_compartments = set(frame["compartment"].dropna()) - set(COMPARTMENTS)
     if bad_compartments:
         raise ValueError(f"unknown compartment codes: {bad_compartments}")
+    bad_source_classes = set(frame["source_class"].dropna()) - set(SOURCE_CLASSES)
+    if bad_source_classes:
+        raise ValueError(f"unknown source_class values: {bad_source_classes}")

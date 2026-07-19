@@ -25,6 +25,7 @@ def test_fetch_stations_parses_kiwis_response(mocked_api: respx.MockRouter, regi
     assert row["source_id"] == "410730"
     assert row["name"] == "Cooper Creek at Currareva"
     assert row["source"] == "bom"
+    assert row["source_class"] == "agency"
     assert row["canonical_id"] == "bom:410730"
     assert row["variables"] == ["Water Course Discharge"]
     assert row["raw"]["station_no"] == "410730"

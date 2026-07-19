@@ -1,6 +1,10 @@
 source_id: nrfa
 name: National River Flow Archive
 operator: UK Centre for Ecology & Hydrology (UKCEH)
+# UKCEH is technically an independent research institute, but NRFA
+# functions as the UK's official national river flow archive (the spec's
+# own register table lists it under agency sources, unflagged as research).
+source_class: agency
 protocol: nrfa_ws
 endpoint: https://nrfaapps.ceh.ac.uk/nrfa/ws/station-info
 license: >-

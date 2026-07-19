@@ -40,6 +40,7 @@ def test_fetch_stations_parses_q_single_page(mocked_api: respx.MockRouter, regis
     assert row["name"] == "La Seine a F243000101"
     assert row["compartment"] == "Q"
     assert row["source"] == "hubeau"
+    assert row["source_class"] == "agency"
     assert row["canonical_id"] == "hubeau:F243000101"
     assert row["raw"]["code_station"] == "F243000101"
     assert frame.geometry.iloc[0].x == 2.0

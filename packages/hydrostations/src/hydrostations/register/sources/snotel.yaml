@@ -1,6 +1,7 @@
 source_id: snotel
 name: SNOTEL / SCAN (Air and Water Database)
 operator: USDA Natural Resources Conservation Service (NRCS)
+source_class: agency
 protocol: snotel_awdb
 endpoint: https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations
 license: "Public Domain (US Government Work, USDA NRCS)"

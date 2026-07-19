@@ -10,6 +10,7 @@ def _base(**overrides):
         "source_id": "test",
         "name": "Test Source",
         "operator": "Test Operator",
+        "source_class": "agency",
         "endpoint": "https://example.com",
         "compartments": ["Q"],
         "license": "Public domain",
@@ -67,6 +68,11 @@ def test_arcgis_entry_discriminates_correctly():
 def test_unknown_compartment_rejected():
     with pytest.raises(ValidationError, match="unknown compartment"):
         SourceEntryAdapter.validate_python(_base(compartments=["NOTREAL"]))
+
+
+def test_unknown_source_class_rejected():
+    with pytest.raises(ValidationError, match="unknown source_class"):
+        SourceEntryAdapter.validate_python(_base(source_class="not_a_real_class"))
 
 
 def test_unknown_protocol_rejected():

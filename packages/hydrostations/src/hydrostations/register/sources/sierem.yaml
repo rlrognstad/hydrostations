@@ -1,6 +1,7 @@
 source_id: sierem
 name: SIEREM
 operator: HydroSciences Montpellier
+source_class: research
 protocol: bulk_kml
 endpoint: http://www.hydrosciences.fr/sierem/
 license: "Open, citation required (SIEREM / HydroSciences Montpellier)"

@@ -1,6 +1,7 @@
 source_id: wise
 name: WISE (Water Information System for Europe)
 operator: European Environment Agency (EEA)
+source_class: agency
 protocol: wise_discodata
 endpoint: https://discodata.eea.europa.eu/sql
 license: >

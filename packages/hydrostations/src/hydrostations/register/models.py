@@ -20,13 +20,19 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field, TypeAdapter, field_validator
 
 from hydrostations.adapters.base import BBox
-from hydrostations.schema import COMPARTMENTS
+from hydrostations.schema import COMPARTMENTS, SOURCE_CLASSES
 
 
 class SourceEntryBase(BaseModel):
     source_id: str
     name: str
     operator: str
+    # agency: official national/subnational hydrological or met service.
+    # research: academic compilation or observatory. citizen: volunteer /
+    # crowd-sourced network. Lets a downstream consumer include/exclude/
+    # weight sources differently -- required, not defaulted to "agency",
+    # since guessing wrong here is worse than being forced to decide.
+    source_class: str
     endpoint: str
     compartments: list[str]
     license: str
@@ -46,6 +52,13 @@ class SourceEntryBase(BaseModel):
         bad = set(v) - set(COMPARTMENTS)
         if bad:
             raise ValueError(f"unknown compartment codes: {sorted(bad)}")
+        return v
+
+    @field_validator("source_class")
+    @classmethod
+    def _known_source_class(cls, v: str) -> str:
+        if v not in SOURCE_CLASSES:
+            raise ValueError(f"unknown source_class {v!r}, must be one of {SOURCE_CLASSES}")
         return v
 
     def coverage_bboxes(self) -> tuple[BBox, ...]:
