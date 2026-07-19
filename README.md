@@ -1,6 +1,6 @@
 # Hydrostations *in situ* hydrology packages
 
-The motivation for Hydrostations is observability. More features of the water cycle are visable via remote sensing and can can be simulated through increasingly complex digital models. The goal of Hydrostations is to understand the distirbution of *in situ* stations mesauring hydrological paramters, providing insight into where we can and cannot see this vital resource. 
+The motivation for Hydrostations is observability. More features of the water cycle are visible via remote sensing and can be simulated through increasingly complex digital models. The goal of Hydrostations is to understand the distribution of *in situ* stations measuring hydrological parameters, providing insight into where we can and cannot see this vital resource.
 
 A [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) containing
 related, independently-installable Python packages:
