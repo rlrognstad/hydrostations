@@ -8,8 +8,9 @@ returning a normalized GeoDataFrame with provenance.
 from hydrostations import get_stations
 
 stations = get_stations(basin="niger", compartment="Q")
-# -> GeoDataFrame: station_id, name, geometry, compartment, network,
-#    start_date, end_date, wsi, license, redistribution_ok
+# -> GeoDataFrame: canonical_id, source, source_id, name, geometry,
+#    compartment, variables, first_obs, last_obs, wsi, license,
+#    redistribution_ok, raw, retrieved_at, and more -- see Schema below
 ```
 
 ## Status
@@ -39,7 +40,7 @@ from hydrostations import lookup_coverage
 from shapely.geometry import box
 
 lookup_coverage(box(4.0, 50.0, 7.0, 54.0))
-# -> {"WISE": ["Q", "GW", "other"], "GGMN": ["GW"]}
+# -> {"wise": ["Q", "GW", "other"], "ggmn": ["GW"]}
 ```
 
 `basin=` resolution is a small name-to-bounding-box lookup
@@ -53,7 +54,7 @@ output:
 from hydrostations import get_stations
 from hydrocrosswalk import assign_crosswalk
 
-stations = get_stations(network="nwis", compartment="Q")
+stations = get_stations(source="nwis", compartment="Q")
 enriched = assign_crosswalk(
     stations, h3_resolution=6, region="na", hydrobasins_level=4, countries=["USA"]
 )
@@ -81,15 +82,27 @@ Every adapter returns a GeoDataFrame with the same columns:
 
 | Column | Meaning |
 |---|---|
-| `station_id` | Network-native station identifier |
+| `canonical_id` | `f"{source}:{source_id}"` -- provisional, not deduplicated across sources |
+| `source` | Register source id, e.g. `"nwis"`, `"bom"` (lowercase) |
+| `source_id` | Source-native station identifier |
 | `name` | Station name |
 | `geometry` | Point location (EPSG:4326) |
 | `compartment` | `Q` (streamflow) / `GW` (groundwater) / `P` (precipitation) / `other` |
-| `network` | Source network (e.g. `NWIS`) |
-| `start_date` / `end_date` | Period of record, where available |
+| `variables` | Native parameter code/type strings available at this station (not a canonical vocabulary yet) |
+| `positional_uncertainty_m` / `elevation_m` / `catchment_area_km2` / `reporting_interval` | Real fields, currently null for every adapter -- placeholders |
+| `first_obs` / `last_obs` | Period of record, where available |
 | `wsi` | WIGOS Station Identifier, where a crosswalk exists |
 | `license` | Source data license |
 | `redistribution_ok` | Whether raw records from this source may be redistributed |
+| `retrieved_at` | Timestamp this record was fetched (stamped once per `get_stations()` call) |
+| `raw` | Untouched native record as returned by the source (dict) |
+
+Sources are driven by a YAML register (`hydrostations/register/sources/*.yaml`), validated
+against pydantic models in `hydrostations.register`, and grouped by protocol under
+`hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server -- shared adapter
+classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE -- hand-written
+fetch logic, no second known user of either protocol), and `hydrostations.adapters.bulk`
+(SIEREM -- snapshot/file sources with no server-side spatial filter).
 
 `redistribution_ok` exists because not every source permits it (GRDC, once
 its adapter is built, will be the first `False` case) — code that consumes

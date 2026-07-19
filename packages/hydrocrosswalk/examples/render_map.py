@@ -118,7 +118,7 @@ def fetch_stations() -> gpd.GeoDataFrame | None:
         print("hydrostations not installed -- skipping the stations layer")
         return None
     return get_stations(
-        basin="murray-darling", network=STATION_NETWORK, compartment=STATION_COMPARTMENT
+        basin="murray-darling", source=STATION_NETWORK, compartment=STATION_COMPARTMENT
     )
 
 
@@ -194,7 +194,7 @@ def build_map_data() -> dict:
                     "x": project(pt.x, pt.y)[0],
                     "y": project(pt.x, pt.y)[1],
                     "name": row["name"],
-                    "id": row["station_id"],
+                    "id": row["source_id"],
                 }
                 for pt, (_, row) in zip(stations.geometry, stations.iterrows(), strict=True)
             ]
