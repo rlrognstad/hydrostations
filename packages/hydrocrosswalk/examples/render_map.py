@@ -47,14 +47,14 @@ DROP_ADMIN_NAMES = {"Other Territories"}  # offshore fragments that distort the 
 SIMPLIFY_TOLERANCE = 0.02  # degrees; keeps the embedded HTML a reasonable size
 SVG_WIDTH = 1000
 STATION_NETWORK = "bom"
-STATION_COMPARTMENT = "Q"
 
 TITLE = "Murray-Darling basin: crosswalk partitions + real stations"
 SUBTITLE = (
     "Every polygon and point below is live data pulled via <code>hydrocrosswalk</code> "
     "and <code>hydrostations</code> -- the basin outline, HydroBASINS sub-basins, "
-    "geoBoundaries admin units, an H3 hex grid, and real station locations. Toggle "
-    "layers in the legend; hover any shape or dot for details."
+    "geoBoundaries admin units, an H3 hex grid, and real streamflow (Q) and "
+    "groundwater (GW) station locations. Toggle layers in the legend; hover any "
+    "shape or dot for details."
 )
 
 
@@ -109,6 +109,9 @@ def layer_to_json(gdf, project, *, name_field=None, id_field=None) -> list[dict]
 def fetch_stations() -> gpd.GeoDataFrame | None:
     """Pull real station data via hydrostations for the same region.
 
+    No `compartment=` filter -- BoM declares both Q and GW, and the map
+    distinguishes them by color rather than only showing one.
+
     Imported lazily so this script still runs (without the stations layer)
     if hydrostations isn't installed alongside hydrocrosswalk.
     """
@@ -117,9 +120,7 @@ def fetch_stations() -> gpd.GeoDataFrame | None:
     except ImportError:
         print("hydrostations not installed -- skipping the stations layer")
         return None
-    return get_stations(
-        basin="murray-darling", source=STATION_NETWORK, compartment=STATION_COMPARTMENT
-    )
+    return get_stations(basin="murray-darling", source=STATION_NETWORK)
 
 
 def build_map_data() -> dict:
@@ -195,6 +196,7 @@ def build_map_data() -> dict:
                     "y": project(pt.x, pt.y)[1],
                     "name": row["name"],
                     "id": row["source_id"],
+                    "compartment": row["compartment"],
                 }
                 for pt, (_, row) in zip(stations.geometry, stations.iterrows(), strict=True)
             ]
@@ -215,7 +217,8 @@ HTML_TEMPLATE = """<title>{title}</title>
     --admin:          #2a78d6;   /* slot 1 blue */
     --basins:         #008300;   /* slot 2 green */
     --h3:             #e87ba4;   /* slot 3 magenta */
-    --stations:       #eda100;   /* slot 4 yellow */
+    --stations-q:     #eda100;   /* slot 4 yellow -- streamflow */
+    --stations-gw:    #1baf7a;   /* slot 5 aqua -- groundwater */
     --boundary:       #3a3a38;   /* neutral ink, not a categorical slot */
   }}
   @media (prefers-color-scheme: dark) {{
@@ -230,7 +233,8 @@ HTML_TEMPLATE = """<title>{title}</title>
       --admin:          #3987e5;
       --basins:         #008300;
       --h3:             #d55181;
-      --stations:       #c98500;
+      --stations-q:     #c98500;
+      --stations-gw:    #199e70;
       --boundary:       #d6d5cc;
     }}
   }}
@@ -245,7 +249,8 @@ HTML_TEMPLATE = """<title>{title}</title>
     --admin:          #3987e5;
     --basins:         #008300;
     --h3:             #d55181;
-    --stations:       #c98500;
+    --stations-q:     #c98500;
+    --stations-gw:    #199e70;
     --boundary:       #d6d5cc;
   }}
 
@@ -320,7 +325,8 @@ HTML_TEMPLATE = """<title>{title}</title>
   .basin-poly {{ fill: var(--basins); fill-opacity: 0.06; stroke: var(--basins); stroke-width: 1.6; stroke-dasharray: 6 3; }}
   .admin-poly {{ fill: none; stroke: var(--admin); stroke-width: 2; }}
   .h3-poly {{ fill: var(--h3); fill-opacity: 0.05; stroke: var(--h3); stroke-width: 1; stroke-dasharray: 1.5 2; }}
-  .station-dot {{ fill: var(--stations); stroke: var(--surface-1); stroke-width: 1; }}
+  .station-dot.q {{ fill: var(--stations-q); stroke: var(--surface-1); stroke-width: 1; }}
+  .station-dot.gw {{ fill: var(--stations-gw); stroke: var(--surface-1); stroke-width: 1; }}
   .station-dot:hover, .basin-poly:hover, .admin-poly:hover, .h3-poly:hover, .boundary-poly:hover {{ filter: brightness(1.3); }}
   .hit {{ fill: transparent; stroke: transparent; stroke-width: 6px; cursor: pointer; }}
 
@@ -387,10 +393,16 @@ HTML_TEMPLATE = """<title>{title}</title>
           <span class="legend-count" id="count-h3"></span>
         </label>
         <label class="legend-item">
-          <input type="checkbox" data-layer="stations" checked>
-          <span class="swatch dot" style="background: var(--stations);"></span>
-          <span class="legend-label">Stations</span>
-          <span class="legend-count" id="count-stations"></span>
+          <input type="checkbox" data-layer="stationsQ" checked>
+          <span class="swatch dot" style="background: var(--stations-q);"></span>
+          <span class="legend-label">Streamflow (Q)</span>
+          <span class="legend-count" id="count-stationsQ"></span>
+        </label>
+        <label class="legend-item">
+          <input type="checkbox" data-layer="stationsGW" checked>
+          <span class="swatch dot" style="background: var(--stations-gw);"></span>
+          <span class="legend-label">Groundwater (GW)</span>
+          <span class="legend-count" id="count-stationsGW"></span>
         </label>
         <div class="legend-note">
           Basin and admin polygons are simplified for display and fetched fresh at
@@ -427,7 +439,8 @@ HTML_TEMPLATE = """<title>{title}</title>
   const gAdmin = makeGroup('layer-admin');
   const gBasins = makeGroup('layer-basins');
   const gH3 = makeGroup('layer-h3');
-  const gStations = makeGroup('layer-stations');
+  const gStationsQ = makeGroup('layer-stationsQ');
+  const gStationsGW = makeGroup('layer-stationsGW');
 
   function showTooltip(evt, kind, label) {{
     tooltip.innerHTML = '<div class="tt-kind">' + kind + '</div>' + label;
@@ -457,34 +470,48 @@ HTML_TEMPLATE = """<title>{title}</title>
   addPolygonLayer(gBasins, data.basins, 'basin-poly', 'HydroBASINS sub-basin', it => 'HYBAS_ID ' + it.id);
   addPolygonLayer(gH3, data.h3, 'h3-poly', 'H3 cell', it => it.id);
 
+  const stationGroups = {{ Q: gStationsQ, GW: gStationsGW }};
+  const stationClass = {{ Q: 'q', GW: 'gw' }};
+
   for (const st of data.stations) {{
+    const group = stationGroups[st.compartment];
+    if (!group) continue;
     const c = document.createElementNS(NS, 'circle');
     c.setAttribute('cx', st.x);
     c.setAttribute('cy', st.y);
     c.setAttribute('r', 2.2);
-    c.setAttribute('class', 'station-dot hit');
-    c.addEventListener('mousemove', e => showTooltip(e, 'Station', st.name + ' (' + st.id + ')'));
+    c.setAttribute('class', 'station-dot hit ' + stationClass[st.compartment]);
+    c.addEventListener('mousemove', e => showTooltip(e, st.compartment === 'Q' ? 'Streamflow station' : 'Groundwater station', st.name + ' (' + st.id + ')'));
     c.addEventListener('mouseleave', hideTooltip);
-    gStations.appendChild(c);
+    group.appendChild(c);
   }}
   // repaint visible dots on top of the larger invisible hit targets
   for (const st of data.stations) {{
+    const group = stationGroups[st.compartment];
+    if (!group) continue;
     const c = document.createElementNS(NS, 'circle');
     c.setAttribute('cx', st.x);
     c.setAttribute('cy', st.y);
     c.setAttribute('r', 2.2);
-    c.setAttribute('class', 'station-dot');
+    c.setAttribute('class', 'station-dot ' + stationClass[st.compartment]);
     c.style.pointerEvents = 'none';
-    gStations.appendChild(c);
+    group.appendChild(c);
   }}
+
+  const stationsQCount = data.stations.filter(st => st.compartment === 'Q').length;
+  const stationsGWCount = data.stations.filter(st => st.compartment === 'GW').length;
 
   document.getElementById('count-boundary').textContent = '1';
   document.getElementById('count-admin').textContent = data.admin.length;
   document.getElementById('count-basins').textContent = data.basins.length;
   document.getElementById('count-h3').textContent = data.h3.length;
-  document.getElementById('count-stations').textContent = data.stations.length;
+  document.getElementById('count-stationsQ').textContent = stationsQCount;
+  document.getElementById('count-stationsGW').textContent = stationsGWCount;
 
-  const groups = {{ boundary: gBoundary, admin: gAdmin, basins: gBasins, h3: gH3, stations: gStations }};
+  const groups = {{
+    boundary: gBoundary, admin: gAdmin, basins: gBasins, h3: gH3,
+    stationsQ: gStationsQ, stationsGW: gStationsGW,
+  }};
   document.querySelectorAll('.legend-item input').forEach(input => {{
     input.addEventListener('change', () => {{
       groups[input.dataset.layer].classList.toggle('layer-hidden', !input.checked);
@@ -512,9 +539,12 @@ def main() -> None:
     out_path = Path(__file__).parent / "crosswalk_map.html"
     out_path.write_text(html)
     print(f"wrote {out_path} ({len(html) / 1024:.0f} KB)")
+    stations_q = sum(1 for s in map_data["stations"] if s["compartment"] == "Q")
+    stations_gw = sum(1 for s in map_data["stations"] if s["compartment"] == "GW")
     print(
         f"  boundary: 1, admin: {len(map_data['admin'])}, basins: {len(map_data['basins'])}, "
-        f"h3: {len(map_data['h3'])}, stations: {len(map_data['stations'])}"
+        f"h3: {len(map_data['h3'])}, stations: {len(map_data['stations'])} "
+        f"(Q: {stations_q}, GW: {stations_gw})"
     )
 
 
