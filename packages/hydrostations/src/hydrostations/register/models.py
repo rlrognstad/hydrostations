@@ -108,6 +108,22 @@ class ArcGisEntry(SourceEntryBase):
     arcgis: ArcGisConfig
 
 
+class OgcFeaturesCollectionConfig(BaseModel):
+    collection: str
+    id_field: str
+    name_field: str
+
+
+class OgcFeaturesConfig(BaseModel):
+    page_size: int = 500
+    collections: dict[str, OgcFeaturesCollectionConfig]
+
+
+class OgcFeaturesEntry(SourceEntryBase):
+    protocol: Literal["ogc_features"]
+    ogc_features: OgcFeaturesConfig
+
+
 class NwisConfig(BaseModel):
     site_type_by_compartment: dict[str, str]
     param_code_by_compartment: dict[str, str]
@@ -135,7 +151,7 @@ class BulkEntry(SourceEntryBase):
 
 
 SourceEntry = Annotated[
-    KiwisEntry | WfsEntry | ArcGisEntry | NwisEntry | WiseEntry | BulkEntry,
+    KiwisEntry | WfsEntry | ArcGisEntry | OgcFeaturesEntry | NwisEntry | WiseEntry | BulkEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)
