@@ -23,6 +23,7 @@ import math
 from pathlib import Path
 
 import geopandas as gpd
+import httpx
 from shapely.geometry import Point, box
 
 from hydrocrosswalk.crosswalk import assign_crosswalk
@@ -31,6 +32,18 @@ from hydrocrosswalk.sources.geoboundaries import fetch_admin_boundaries
 from hydrocrosswalk.sources.hydrobasins import fetch_hydrobasins
 
 BBox = tuple[float, float, float, float]
+
+# Natural Earth 110m countries (public domain) -- used only for the small
+# "where in Australia is this" locator inset, not the basin data itself.
+_COUNTRY_OUTLINE_URL = (
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/"
+    "master/geojson/ne_110m_admin_0_countries.geojson"
+)
+_INSET_COUNTRY = "AUS"  # ADM0_A3 -- see hydrostations' render_coverage_map.py
+# for why ADM0_A3 and not ISO_A3 (the latter is "-99" for several countries
+# in this dataset).
+_INSET_SIMPLIFY_TOLERANCE = 0.15  # coarser than the main map -- rendered tiny
+_INSET_WIDTH = 160
 
 # Murray-Darling basin (Australia) -- the same region used throughout the
 # crosswalk + stations walkthrough. Edit these to render a different basin.
@@ -48,14 +61,7 @@ SIMPLIFY_TOLERANCE = 0.02  # degrees; keeps the embedded HTML a reasonable size
 SVG_WIDTH = 1000
 STATION_NETWORK = "bom"
 
-TITLE = "Murray-Darling basin: crosswalk partitions + real stations"
-SUBTITLE = (
-    "Every polygon and point below is live data pulled via <code>hydrocrosswalk</code> "
-    "and <code>hydrostations</code> -- the basin outline, HydroBASINS sub-basins, "
-    "geoBoundaries admin units, an H3 hex grid, and real streamflow (Q) and "
-    "groundwater (GW) station locations. Toggle layers in the legend; hover any "
-    "shape or dot for details."
-)
+TITLE = "Murray-Darling basin: crosswalk partitions & stations"
 
 
 def make_projector(bbox: BBox, width: int) -> tuple[callable, float]:
@@ -104,6 +110,35 @@ def layer_to_json(gdf, project, *, name_field=None, id_field=None) -> list[dict]
             entry["id"] = str(row[id_field])
         out.append(entry)
     return out
+
+
+def build_inset_data(highlight_bbox: BBox) -> dict:
+    """A small locator map: the country's own outline plus a highlight
+    rectangle marking where `highlight_bbox` (the basin's display bbox)
+    sits within it. Independent projection from the main map -- the
+    inset is its own small coordinate space, not a miniature of the
+    main SVG's viewBox."""
+    response = httpx.get(_COUNTRY_OUTLINE_URL, timeout=30.0, follow_redirects=True)
+    response.raise_for_status()
+    countries = gpd.GeoDataFrame.from_features(response.json()["features"], crs="EPSG:4326")
+    country = countries[countries["ADM0_A3"] == _INSET_COUNTRY]
+    geom = country.geometry.union_all()
+
+    minx, miny, maxx, maxy = geom.bounds
+    project, height = make_projector((minx, miny, maxx, maxy), _INSET_WIDTH)
+
+    rings = polygon_rings(geom.simplify(_INSET_SIMPLIFY_TOLERANCE, preserve_topology=True), project)
+
+    hl_min_lon, hl_min_lat, hl_max_lon, hl_max_lat = highlight_bbox
+    x0, y0 = project(hl_min_lon, hl_max_lat)
+    x1, y1 = project(hl_max_lon, hl_min_lat)
+
+    return {
+        "width": _INSET_WIDTH,
+        "height": height,
+        "country": {"rings": rings},
+        "highlight": {"x": x0, "y": y0, "w": round(x1 - x0, 1), "h": round(y1 - y0, 1)},
+    }
 
 
 def fetch_stations() -> gpd.GeoDataFrame | None:
@@ -187,6 +222,7 @@ def build_map_data() -> dict:
         "admin": layer_to_json(admin, project, name_field="shapeName"),
         "basins": layer_to_json(basins, project, id_field="HYBAS_ID"),
         "h3": layer_to_json(h3_gdf, project, id_field="h3_cell"),
+        "inset": build_inset_data(BBOX),
         "stations": (
             []
             if stations is None
@@ -220,6 +256,7 @@ HTML_TEMPLATE = """<title>{title}</title>
     --stations-q:     #eda100;   /* slot 4 yellow -- streamflow */
     --stations-gw:    #1baf7a;   /* slot 5 aqua -- groundwater */
     --boundary:       #3a3a38;   /* neutral ink, not a categorical slot */
+    --inset-highlight: #c1502e;  /* rust, "you are here" marker -- not a data-layer color */
   }}
   @media (prefers-color-scheme: dark) {{
     :root:where(:not([data-theme="light"])) .viz-root {{
@@ -236,6 +273,7 @@ HTML_TEMPLATE = """<title>{title}</title>
       --stations-q:     #c98500;
       --stations-gw:    #199e70;
       --boundary:       #d6d5cc;
+      --inset-highlight: #dd6a44;
     }}
   }}
   :root[data-theme="dark"] .viz-root {{
@@ -252,6 +290,7 @@ HTML_TEMPLATE = """<title>{title}</title>
     --stations-q:     #c98500;
     --stations-gw:    #199e70;
     --boundary:       #d6d5cc;
+    --inset-highlight: #dd6a44;
   }}
 
   * {{ box-sizing: border-box; }}
@@ -271,8 +310,7 @@ HTML_TEMPLATE = """<title>{title}</title>
     border-radius: 12px;
     padding: 20px 24px 24px;
   }}
-  h1 {{ font-size: 18px; font-weight: 600; margin: 0 0 4px; }}
-  .subtitle {{ font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; max-width: 70ch; }}
+  h1 {{ font-size: 18px; font-weight: 600; margin: 0 0 16px; }}
   .layout {{ display: flex; gap: 20px; align-items: flex-start; }}
   .map-wrap {{
     position: relative;
@@ -284,6 +322,21 @@ HTML_TEMPLATE = """<title>{title}</title>
     background: var(--surface-1);
   }}
   svg {{ display: block; width: 100%; height: auto; }}
+
+  .inset-map {{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 96px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }}
+  .inset-map svg {{ width: 100%; height: auto; }}
+  .inset-country {{ fill: var(--muted); fill-opacity: 0.25; stroke: var(--text-secondary); stroke-width: 1; }}
+  .inset-highlight {{ fill: var(--inset-highlight); fill-opacity: 0.5; stroke: var(--inset-highlight); stroke-width: 1; }}
 
   .legend {{ flex: 0 0 220px; font-size: 13px; }}
   .legend h2 {{
@@ -361,10 +414,12 @@ HTML_TEMPLATE = """<title>{title}</title>
 <div class="viz-root">
   <div class="viz-card">
     <h1>{title}</h1>
-    <p class="subtitle">{subtitle}</p>
     <div class="layout">
       <div class="map-wrap">
         <svg id="map" viewBox="{view_box}" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="inset-map">
+          <svg id="inset" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
       </div>
       <div class="legend">
         <h2>Layers</h2>
@@ -508,6 +563,20 @@ HTML_TEMPLATE = """<title>{title}</title>
   document.getElementById('count-stationsQ').textContent = stationsQCount;
   document.getElementById('count-stationsGW').textContent = stationsGWCount;
 
+  const insetSvg = document.getElementById('inset');
+  insetSvg.setAttribute('viewBox', '0 0 ' + data.inset.width + ' ' + data.inset.height);
+  const insetCountry = document.createElementNS(NS, 'path');
+  insetCountry.setAttribute('d', ringsToPath(data.inset.country.rings));
+  insetCountry.setAttribute('class', 'inset-country');
+  insetSvg.appendChild(insetCountry);
+  const insetHighlight = document.createElementNS(NS, 'rect');
+  insetHighlight.setAttribute('x', data.inset.highlight.x);
+  insetHighlight.setAttribute('y', data.inset.highlight.y);
+  insetHighlight.setAttribute('width', data.inset.highlight.w);
+  insetHighlight.setAttribute('height', data.inset.highlight.h);
+  insetHighlight.setAttribute('class', 'inset-highlight');
+  insetSvg.appendChild(insetHighlight);
+
   const groups = {{
     boundary: gBoundary, admin: gAdmin, basins: gBasins, h3: gH3,
     stationsQ: gStationsQ, stationsGW: gStationsGW,
@@ -527,7 +596,6 @@ def render_html(map_data: dict) -> str:
     view_box = f"-{pad} -{pad} {map_data['width'] + 2 * pad} {map_data['height'] + 2 * pad}"
     return HTML_TEMPLATE.format(
         title=TITLE,
-        subtitle=SUBTITLE,
         view_box=view_box,
         data_json=json.dumps(map_data),
     )
