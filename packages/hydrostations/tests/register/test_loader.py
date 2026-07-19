@@ -34,6 +34,7 @@ def test_load_entries_reads_real_production_register():
         "nrfa",
         "snotel",
         "cocorahs",
+        "ghcnd",
     }
 
 
