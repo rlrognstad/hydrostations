@@ -1,44 +1,26 @@
 """SIEREM (HydroSciences Montpellier) adapter -- not yet implemented.
 
 SIEREM (http://www.hydrosciences.fr/sierem/) is a static data portal, not a
-queryable API -- data is retrieved via the portal's map/download interface
-rather than a REST endpoint.
+queryable API. Investigation found ~647 real per-basin/per-station-type KML
+files with individual station placemarks (id, name, coordinates, country) --
+genuinely structured and machine-readable, just not a REST endpoint. No
+server-side spatial filtering exists, so this needs a bulk-fetch-then-filter
+design (the `bulk_kml` protocol / `BulkFileAdapter` archetype), not a simple
+per-query adapter -- see `hydrostations.adapters.bulk`.
 
-Before implementing:
-
-- Confirm whether SIEREM exposes any machine-readable bulk export (CSV,
-  shapefile) versus requiring interactive portal navigation.
-- If only interactive/manual export exists, this adapter may need to work
-  from a periodically-refreshed static extract rather than a live fetch,
-  which changes its shape relative to the other adapters.
-- Confirm the exact wording SIEREM's citation requirement expects in the
-  `license` field.
+Not yet implemented.
 """
 
 from __future__ import annotations
 
 import geopandas as gpd
 
-from hydrostations.adapters.base import BBox, StationAdapter
+from hydrostations.adapters.base import BBox, SourceAdapter
 from hydrostations.exceptions import AdapterNotImplementedError
 
-_LICENSE = "Open, citation required (SIEREM / HydroSciences Montpellier)"
 
-# Coarse declared coverage per SIEREM's stated archive scope -- West/Central
-# Africa plus the Mediterranean rim -- not a verified service area; for
-# hydrostations.coverage's static lookup only.
-_COVERAGE_BBOXES = (
-    BBox(min_lon=-18.0, min_lat=-5.0, max_lon=25.0, max_lat=25.0),  # West/Central Africa
-    BBox(min_lon=-10.0, min_lat=30.0, max_lon=40.0, max_lat=45.0),  # Mediterranean rim
-)
-
-
-class SieremAdapter(StationAdapter):
-    network = "SIEREM"
-    license = _LICENSE
-    redistribution_ok = True
-    compartments = ("Q", "P")
-    coverage = _COVERAGE_BBOXES
+class SieremAdapter(SourceAdapter):
+    protocol = "bulk_kml"
 
     def fetch_stations(
         self,

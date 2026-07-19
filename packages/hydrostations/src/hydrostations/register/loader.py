@@ -1,10 +1,9 @@
-"""Loads and validates the YAML source register.
+"""Loads and validates the YAML source register, and builds adapter instances.
 
-`load_entries()` is the only thing this module does for now -- reading
-every `sources/*.yaml` file and validating it against the pydantic models
-in `register.models`. Turning validated entries into adapter instances
-(`build_adapters()`) is added once the adapters themselves are ported to
-accept a register entry.
+`load_entries()` reads every `sources/*.yaml` file and validates it against
+the pydantic models in `register.models`. `build_adapters()` turns those
+entries into ready-to-use `SourceAdapter` instances, keyed by `source_id` --
+this is what `core._default_registry()` calls.
 """
 
 from __future__ import annotations
@@ -15,10 +14,29 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
+from hydrostations.adapters.base import SourceAdapter
+from hydrostations.adapters.bom import BomAdapter
+from hydrostations.adapters.ggmn import GgmnAdapter
+from hydrostations.adapters.hidroweb import HidroWebAdapter
+from hydrostations.adapters.nwis import NwisAdapter
+from hydrostations.adapters.sierem import SieremAdapter
+from hydrostations.adapters.wise import WiseAdapter
 from hydrostations.exceptions import RegisterError
 from hydrostations.register.models import SourceEntry, SourceEntryAdapter
 
 _SOURCES_DIR = Path(__file__).parent / "sources"
+
+# Keyed by protocol, not source_id -- multiple sources on the same protocol
+# (e.g. a second KiWIS agency) share one class. Updated as adapters move
+# into adapters/protocols|bespoke|bulk/ during the generalization steps.
+_ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
+    "kiwis": BomAdapter,
+    "wfs": GgmnAdapter,
+    "arcgis_feature_server": HidroWebAdapter,
+    "nwis_rdb": NwisAdapter,
+    "wise_discodata": WiseAdapter,
+    "bulk_kml": SieremAdapter,
+}
 
 
 @lru_cache
@@ -40,3 +58,12 @@ def load_entries(sources_dir: Path | None = None) -> tuple[SourceEntry, ...]:
         raise RegisterError(f"duplicate source_id(s) in register: {sorted(duplicates)}")
 
     return tuple(entries)
+
+
+def build_adapters(sources_dir: Path | None = None) -> dict[str, SourceAdapter]:
+    """Fresh adapter instances for every registered source, keyed by source_id.
+
+    Not cached (unlike `load_entries()`) -- matches the pre-register
+    `_default_registry()`'s behavior of returning new instances per call.
+    """
+    return {e.source_id: _ADAPTER_CLASSES[e.protocol](e) for e in load_entries(sources_dir)}

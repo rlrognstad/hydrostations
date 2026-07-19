@@ -5,9 +5,15 @@ in RDB (tab-delimited) format, with `seriesCatalogOutput=true` to recover
 each site's period of record for the requested parameter.
 
 NWIS also rejects any bBox request larger than ~25 square degrees (400
-error). `_COVERAGE_BBOXES` avoids the common case -- a query bbox entirely
-outside the US -- but a large *in-coverage* bbox (e.g. all of CONUS) can
-still exceed the limit; tiling such requests isn't implemented yet.
+error). The register's `skip_out_of_coverage` flag (set for this source
+only) avoids the common case -- a query bbox entirely outside the US -- but
+a large *in-coverage* bbox (e.g. all of CONUS) can still exceed the limit;
+tiling such requests isn't implemented yet.
+
+Bespoke (not a generalized protocol adapter): RDB is USGS-specific, no
+second known user, so there's no reuse payoff in abstracting it. Config
+(site types, parameter codes) still comes from the register entry rather
+than module constants.
 """
 
 from __future__ import annotations
@@ -18,44 +24,14 @@ import geopandas as gpd
 import httpx
 import pandas as pd
 
-from hydrostations.adapters.base import BBox, StationAdapter, bboxes_intersect
+from hydrostations.adapters.base import BBox, SourceAdapter, bboxes_intersect
 from hydrostations.schema import stations_frame_from_records
 
 _BASE_URL = "https://waterservices.usgs.gov/nwis/site/"
 
-# Coarse coverage area (CONUS + AK/HI/PR). Used to skip fetching entirely
-# when the requested bbox can't possibly intersect NWIS data -- otherwise a
-# bbox this large would also trip NWIS's own bounding-box size limit (~25
-# sq. degrees; larger requests 400). Also exposed as the adapter's public
-# `coverage` attribute for hydrostations.coverage's static lookup.
-_COVERAGE_BBOXES = (
-    BBox(min_lon=-125.0, min_lat=24.0, max_lon=-66.0, max_lat=50.0),  # CONUS
-    BBox(min_lon=-170.0, min_lat=51.0, max_lon=-129.0, max_lat=72.0),  # Alaska
-    BBox(min_lon=-160.0, min_lat=18.0, max_lon=-154.0, max_lat=23.0),  # Hawaii
-    BBox(min_lon=-68.0, min_lat=17.0, max_lon=-65.0, max_lat=19.0),  # Puerto Rico
-)
 
-# NWIS site-type codes for the compartments this adapter supports.
-_SITE_TYPES = {
-    "Q": "ST",  # stream
-    "GW": "GW",  # groundwater well
-}
-
-# Parameter codes used to determine each site's period of record.
-_PARM_CODES = {
-    "Q": "00060",  # discharge, cubic feet per second
-    "GW": "72019",  # depth to water level, feet below land surface
-}
-
-_LICENSE = "Public domain (U.S. Geological Survey)"
-
-
-class NwisAdapter(StationAdapter):
-    network = "NWIS"
-    license = _LICENSE
-    redistribution_ok = True
-    compartments = ("Q", "GW")
-    coverage = _COVERAGE_BBOXES
+class NwisAdapter(SourceAdapter):
+    protocol = "nwis_rdb"
 
     def fetch_stations(
         self,
@@ -63,7 +39,11 @@ class NwisAdapter(StationAdapter):
         bbox: BBox | None = None,
         compartment: str | None = None,
     ) -> gpd.GeoDataFrame:
-        if bbox is not None and not any(bboxes_intersect(bbox, c) for c in self.coverage):
+        if (
+            self.entry.skip_out_of_coverage
+            and bbox is not None
+            and not any(bboxes_intersect(bbox, c) for c in self.coverage)
+        ):
             return stations_frame_from_records([])
 
         compartments = [compartment] if compartment else list(self.compartments)
@@ -75,16 +55,17 @@ class NwisAdapter(StationAdapter):
         return stations_frame_from_records(records)
 
     def _fetch_compartment(self, *, bbox: BBox | None, compartment: str) -> list[dict]:
+        cfg = self.entry.nwis
         params = {
             "format": "rdb",
-            "siteType": _SITE_TYPES[compartment],
+            "siteType": cfg.site_type_by_compartment[compartment],
             "siteStatus": "all",
             # NWIS rejects siteOutput=expanded combined with
             # seriesCatalogOutput=true ("feature not supported"); basic
             # output still carries station_nm/dec_lat_va/dec_long_va.
             "siteOutput": "basic",
             "seriesCatalogOutput": "true",
-            "parameterCd": _PARM_CODES[compartment],
+            "parameterCd": cfg.param_code_by_compartment[compartment],
         }
         if bbox is not None:
             params["bBox"] = f"{bbox.min_lon},{bbox.min_lat},{bbox.max_lon},{bbox.max_lat}"
@@ -107,17 +88,19 @@ class NwisAdapter(StationAdapter):
         for row in grouped.itertuples(index=False):
             records.append(
                 {
-                    "station_id": row.site_no,
+                    "source": self.source,
+                    "source_id": row.site_no,
                     "name": row.station_nm,
                     "lon": float(row.dec_long_va),
                     "lat": float(row.dec_lat_va),
                     "compartment": compartment,
-                    "network": self.network,
-                    "start_date": pd.to_datetime(row.begin_date, errors="coerce"),
-                    "end_date": pd.to_datetime(row.end_date, errors="coerce"),
+                    "variables": [cfg.param_code_by_compartment[compartment]],
+                    "first_obs": pd.to_datetime(row.begin_date, errors="coerce"),
+                    "last_obs": pd.to_datetime(row.end_date, errors="coerce"),
                     "wsi": None,
                     "license": self.license,
                     "redistribution_ok": self.redistribution_ok,
+                    "raw": row._asdict(),
                 }
             )
         return records

@@ -2,8 +2,17 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import geopandas as gpd
+
+if TYPE_CHECKING:
+    # Type-only: register.models imports BBox from this module, so importing
+    # SourceEntry back here for real would be circular. `from __future__
+    # import annotations` already makes the SourceEntry hint lazy, but the
+    # explicit TYPE_CHECKING guard keeps that clear rather than relying on
+    # it implicitly.
+    from hydrostations.register.models import SourceEntry
 
 
 @dataclass(frozen=True)
@@ -23,17 +32,26 @@ def bboxes_intersect(a: BBox, b: BBox) -> bool:
     )
 
 
-class StationAdapter(ABC):
-    """Interface every network adapter must implement."""
+class SourceAdapter(ABC):
+    """Interface every source (agency/network) adapter must implement.
 
-    network: str
-    license: str
-    redistribution_ok: bool
-    compartments: tuple[str, ...]
-    # Coarse, hand-declared geographic coverage (e.g. NWIS = CONUS + AK/HI/PR).
-    # Used for static coverage lookups (hydrostations.coverage) and to skip
-    # doomed requests -- not an authoritative service-area boundary.
-    coverage: tuple[BBox, ...]
+    Constructed from a validated register entry -- see
+    `hydrostations.register`. Every current adapter (protocol and bespoke
+    alike) uses this base `__init__` unchanged; protocol-specific config
+    lives on `entry.kiwis`/`entry.wfs`/`entry.arcgis`/etc., read directly
+    by the adapter rather than copied into separate instance attributes.
+    """
+
+    protocol: str
+
+    def __init__(self, entry: SourceEntry) -> None:
+        self.entry = entry
+        self.source = entry.source_id
+        self.license = entry.license
+        self.redistribution_ok = entry.redistribution_ok
+        self.compartments = tuple(entry.compartments)
+        self.coverage = entry.coverage_bboxes()
+        self.live = entry.live
 
     @abstractmethod
     def fetch_stations(

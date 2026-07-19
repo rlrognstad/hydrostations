@@ -9,7 +9,7 @@ format is GeoJSON.
 Paginates via `startIndex`/`count`; GeoServer here throws a server-side
 NullPointerException when `startIndex` is combined with a `bbox` filter but
 no explicit `sortBy` -- sorting by `id` avoids it (a real bug worked around,
-not a documented requirement).
+not a documented requirement, hence the register's `sort_by` config knob).
 
 Licensing: the dataset's own metadata (constraints_other, via
 https://ggis.un-igrac.org/api/v2/datasets/2472/) states CC BY-NC-SA 4.0
@@ -20,6 +20,10 @@ their own terms. `redistribution_ok=True` here because redistribution is
 genuinely allowed, just conditioned on non-commercial use and share-alike --
 conditions this package doesn't have a dedicated field for, so they live in
 the `license` string for now.
+
+This is genuinely a reusable protocol (OGC WFS 2.0 is a real standard,
+GeoServer backs a lot of government open data) -- generalizing it into a
+shared `WfsAdapter` is a separate, later step.
 """
 
 from __future__ import annotations
@@ -28,30 +32,12 @@ import geopandas as gpd
 import httpx
 import pandas as pd
 
-from hydrostations.adapters.base import BBox, StationAdapter
+from hydrostations.adapters.base import BBox, SourceAdapter
 from hydrostations.schema import stations_frame_from_records
 
-_BASE_URL = "https://ggis.un-igrac.org/geoserver/ows"
-_TYPE_NAME = "groundwater:GGMN_Levels_Data"
-_PAGE_SIZE = 1000
 
-_LICENSE = (
-    "CC BY-NC-SA 4.0 (Attribution-NonCommercial-ShareAlike), International "
-    "Groundwater Resources Assessment Centre (IGRAC) -- license varies by "
-    "contributing national authority ('varied_derived' in source metadata); "
-    "see https://ggis.un-igrac.org/catalogue/#/dataset/2472"
-)
-
-# Genuinely global network aggregating national monitoring data.
-_COVERAGE_BBOXES = (BBox(min_lon=-180.0, min_lat=-90.0, max_lon=180.0, max_lat=90.0),)
-
-
-class GgmnAdapter(StationAdapter):
-    network = "GGMN"
-    license = _LICENSE
-    redistribution_ok = True
-    compartments = ("GW",)
-    coverage = _COVERAGE_BBOXES
+class GgmnAdapter(SourceAdapter):
+    protocol = "wfs"
 
     def fetch_stations(
         self,
@@ -61,40 +47,63 @@ class GgmnAdapter(StationAdapter):
     ) -> gpd.GeoDataFrame:
         if compartment is not None and compartment not in self.compartments:
             return stations_frame_from_records([])
-        return stations_frame_from_records(self._fetch_all(bbox=bbox))
+        c = compartment or self.compartments[0]
+        return stations_frame_from_records(self._fetch_all(bbox=bbox, compartment=c))
 
-    def _fetch_all(self, *, bbox: BBox | None) -> list[dict]:
+    def _fetch_all(self, *, bbox: BBox | None, compartment: str) -> list[dict]:
+        cfg = self.entry.wfs
+        collection = cfg.collections[compartment]
         records = []
         start_index = 0
         while True:
             params = {
                 "service": "WFS",
-                "version": "2.0.0",
+                "version": cfg.version,
                 "request": "GetFeature",
-                "typeNames": _TYPE_NAME,
+                "typeNames": collection.type_name,
                 "outputFormat": "application/json",
-                "count": str(_PAGE_SIZE),
+                "count": str(cfg.page_size),
                 "startIndex": str(start_index),
-                "sortBy": "id",
             }
+            if cfg.sort_by:
+                params["sortBy"] = cfg.sort_by
             if bbox is not None:
                 params["bbox"] = (
                     f"{bbox.min_lon},{bbox.min_lat},{bbox.max_lon},{bbox.max_lat},EPSG:4326"
                 )
 
-            response = httpx.get(_BASE_URL, params=params, timeout=60.0)
+            response = httpx.get(self.entry.endpoint, params=params, timeout=60.0)
             response.raise_for_status()
             payload = response.json()
             features = payload.get("features", [])
             records.extend(
-                _feature_to_record(f, self.license, self.redistribution_ok) for f in features
+                self._feature_to_record(f, compartment, collection) for f in features
             )
 
-            if len(features) < _PAGE_SIZE:
+            if len(features) < cfg.page_size:
                 break
-            start_index += _PAGE_SIZE
+            start_index += cfg.page_size
 
         return records
+
+    def _feature_to_record(self, feature: dict, compartment: str, collection) -> dict:
+        props = feature["properties"]
+        lon, lat = feature["geometry"]["coordinates"]
+        return {
+            "source": self.source,
+            "source_id": str(props[collection.id_field]),
+            "name": props.get(collection.name_field),
+            "lon": lon,
+            "lat": lat,
+            "compartment": compartment,
+            "variables": [],
+            "first_obs": _parse_timestamp(props.get(collection.start_field)),
+            "last_obs": _parse_timestamp(props.get(collection.end_field)),
+            "wsi": None,
+            "license": self.license,
+            "redistribution_ok": self.redistribution_ok,
+            "raw": props,
+        }
 
 
 def _parse_timestamp(value: str | None) -> pd.Timestamp:
@@ -103,21 +112,3 @@ def _parse_timestamp(value: str | None) -> pd.Timestamp:
     # just letting pd.to_datetime infer a tz-aware dtype.
     parsed = pd.to_datetime(value, errors="coerce", utc=True)
     return parsed.tz_localize(None) if parsed is not pd.NaT else parsed
-
-
-def _feature_to_record(feature: dict, license_text: str, redistribution_ok: bool) -> dict:
-    props = feature["properties"]
-    lon, lat = feature["geometry"]["coordinates"]
-    return {
-        "station_id": str(props["id"]),
-        "name": props.get("name"),
-        "lon": lon,
-        "lat": lat,
-        "compartment": "GW",
-        "network": "GGMN",
-        "start_date": _parse_timestamp(props.get("first_recorded_measurement")),
-        "end_date": _parse_timestamp(props.get("last_recorded_measurement")),
-        "wsi": None,
-        "license": license_text,
-        "redistribution_ok": redistribution_ok,
-    }

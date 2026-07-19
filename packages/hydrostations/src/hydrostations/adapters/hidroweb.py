@@ -15,15 +15,16 @@ The service's field list also carries per-measurement-type operational
 date ranges (e.g. `MedicaoDescargaLiquidaInicio`/`...Fim`), but which
 field is the "right" one for a given station's actual period of record is
 ambiguous from the inventory alone (a Fluviométrica station's `TipoEstacao`
-doesn't guarantee `MedicaoDescargaLiquida` is "Sim") -- start_date/end_date
+doesn't guarantee `MedicaoDescargaLiquida` is "Sim") -- first_obs/last_obs
 are left null here rather than guess, same as BoM.
 
 `maxRecordCount` is 1000; paginated via `resultOffset`.
 
-Licensing: the dataset's own metadata states "É permitida a reprodução de
-dados e de informações, desde que citada a fonte" (reproduction permitted,
-attribution required) -- not a named license (e.g. not literally CC BY),
-but functionally an attribution-required open policy.
+This is genuinely a reusable protocol (Esri ArcGIS Feature Server is common
+among government open-data portals worldwide) -- generalizing it into a
+shared `ArcGisFeatureServerAdapter` is a separate, later step. For now this
+still reads its config from the register entry rather than module
+constants.
 """
 
 from __future__ import annotations
@@ -31,38 +32,12 @@ from __future__ import annotations
 import geopandas as gpd
 import httpx
 
-from hydrostations.adapters.base import BBox, StationAdapter
+from hydrostations.adapters.base import BBox, SourceAdapter
 from hydrostations.schema import stations_frame_from_records
 
-_BASE_URL = (
-    "https://portal1.snirh.gov.br/server/rest/services/"
-    "Esta%C3%A7%C3%B5es_Hidrometeorol%C3%B3gicas_SNIRH/FeatureServer/0/query"
-)
-_PAGE_SIZE = 1000
 
-_LICENSE = (
-    'Reproduction permitted with attribution ("E permitida a reproducao de '
-    'dados e de informacoes, desde que citada a fonte"), Agencia Nacional '
-    "de Aguas e Saneamento Basico (ANA) / SNIRH -- "
-    "see https://dadosabertos.ana.gov.br"
-)
-
-# Coarse declared coverage: Brazil.
-_COVERAGE_BBOXES = (BBox(min_lon=-74.0, min_lat=-34.0, max_lon=-34.0, max_lat=5.5),)
-
-# TipoEstacao values (verified live -- exactly these two exist).
-_STATION_TYPES = {
-    "Q": "Fluviométrica",
-    "P": "Pluviométrica",
-}
-
-
-class HidroWebAdapter(StationAdapter):
-    network = "HIDROWEB"
-    license = _LICENSE
-    redistribution_ok = True
-    compartments = ("Q", "P")
-    coverage = _COVERAGE_BBOXES
+class HidroWebAdapter(SourceAdapter):
+    protocol = "arcgis_feature_server"
 
     def fetch_stations(
         self,
@@ -79,11 +54,12 @@ class HidroWebAdapter(StationAdapter):
         return stations_frame_from_records(records)
 
     def _fetch_compartment(self, *, bbox: BBox | None, compartment: str) -> list[dict]:
+        cfg = self.entry.arcgis
         params = {
-            "where": f"TipoEstacao='{_STATION_TYPES[compartment]}'",
-            "outFields": "Codigo,Nome,TipoEstacao",
+            "where": cfg.where_by_compartment[compartment],
+            "outFields": ",".join(cfg.out_fields),
             "f": "geojson",
-            "resultRecordCount": str(_PAGE_SIZE),
+            "resultRecordCount": str(cfg.page_size),
         }
         if bbox is not None:
             params["geometry"] = f"{bbox.min_lon},{bbox.min_lat},{bbox.max_lon},{bbox.max_lat}"
@@ -95,32 +71,34 @@ class HidroWebAdapter(StationAdapter):
         offset = 0
         while True:
             response = httpx.get(
-                _BASE_URL, params={**params, "resultOffset": str(offset)}, timeout=30.0
+                self.entry.endpoint, params={**params, "resultOffset": str(offset)}, timeout=30.0
             )
             response.raise_for_status()
             features = response.json().get("features", [])
-            records.extend(_feature_to_record(f, compartment, self.license) for f in features)
+            records.extend(self._feature_to_record(f, compartment) for f in features)
 
-            if len(features) < _PAGE_SIZE:
+            if len(features) < cfg.page_size:
                 break
-            offset += _PAGE_SIZE
+            offset += cfg.page_size
 
         return records
 
-
-def _feature_to_record(feature: dict, compartment: str, license_text: str) -> dict:
-    props = feature["properties"]
-    lon, lat = feature["geometry"]["coordinates"]
-    return {
-        "station_id": str(props["Codigo"]),
-        "name": props.get("Nome"),
-        "lon": lon,
-        "lat": lat,
-        "compartment": compartment,
-        "network": "HIDROWEB",
-        "start_date": None,
-        "end_date": None,
-        "wsi": None,
-        "license": license_text,
-        "redistribution_ok": True,
-    }
+    def _feature_to_record(self, feature: dict, compartment: str) -> dict:
+        cfg = self.entry.arcgis
+        props = feature["properties"]
+        lon, lat = feature["geometry"]["coordinates"]
+        return {
+            "source": self.source,
+            "source_id": str(props[cfg.id_field]),
+            "name": props.get(cfg.name_field),
+            "lon": lon,
+            "lat": lat,
+            "compartment": compartment,
+            "variables": [props.get("TipoEstacao")] if props.get("TipoEstacao") else [],
+            "first_obs": None,
+            "last_obs": None,
+            "wsi": None,
+            "license": self.license,
+            "redistribution_ok": self.redistribution_ok,
+            "raw": props,
+        }

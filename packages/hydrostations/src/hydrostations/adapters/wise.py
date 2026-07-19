@@ -13,16 +13,16 @@ with a null/unrelated zone type (e.g. "riverBasinDistrictSubUnit", which is
 an administrative area, not a station) are excluded.
 
 No period-of-record fields exist on this table (that lives in separate,
-much larger observation tables); start_date/end_date are left null here,
+much larger observation tables); first_obs/last_obs are left null here,
 same as the BoM adapter.
 
 Query timeout is 20s server-side (per EEA's own Discodata user guide), so
 large regions are paged via `p`/`nrOfHits` rather than fetched in one call.
 
-Licensing: EEA's default data policy is ODC-BY (Open Data Commons
-Attribution License) unless a specific dataset states otherwise --
-https://www.eea.europa.eu/en/datahub/eea-data-policy. No WISE-SoE-specific
-override found.
+Bespoke (not a generalized protocol adapter): EEA's DiscoData SQL-over-HTTP
+is a one-off platform, no second known user, so there's no reuse payoff in
+abstracting it. Config (table name, zone-type-per-compartment) comes from
+the register entry rather than module constants.
 """
 
 from __future__ import annotations
@@ -30,36 +30,12 @@ from __future__ import annotations
 import geopandas as gpd
 import httpx
 
-from hydrostations.adapters.base import BBox, StationAdapter
+from hydrostations.adapters.base import BBox, SourceAdapter
 from hydrostations.schema import stations_frame_from_records
 
-_BASE_URL = "https://discodata.eea.europa.eu/sql"
-_TABLE = "[WISE_SOE].[v1r1].[Waterbase_S_WISE_SpatialObject_DerivedData]"
-_PAGE_SIZE = 5000
 
-_LICENSE = (
-    "ODC-BY (Open Data Commons Attribution License), European Environment "
-    "Agency (EEA) -- default EEA data policy unless a specific dataset "
-    "states otherwise; see https://www.eea.europa.eu/en/datahub/eea-data-policy"
-)
-
-# Coarse declared coverage: Europe (WISE-SoE's WFD reporting scope).
-_COVERAGE_BBOXES = (BBox(min_lon=-25.0, min_lat=34.0, max_lon=45.0, max_lat=71.0),)
-
-# specialisedZoneType values (verified live) that count as each compartment.
-_ZONE_TYPES = {
-    "Q": ("riverWaterBody",),
-    "GW": ("groundWaterBody",),
-    "other": ("lakeWaterBody", "coastalWaterBody", "transitionalWaterBody"),
-}
-
-
-class WiseAdapter(StationAdapter):
-    network = "WISE"
-    license = _LICENSE
-    redistribution_ok = True
-    compartments = ("Q", "GW", "other")
-    coverage = _COVERAGE_BBOXES
+class WiseAdapter(SourceAdapter):
+    protocol = "wise_discodata"
 
     def fetch_stations(
         self,
@@ -76,7 +52,8 @@ class WiseAdapter(StationAdapter):
         return stations_frame_from_records(records)
 
     def _fetch_compartment(self, *, bbox: BBox | None, compartment: str) -> list[dict]:
-        zone_types = ", ".join(f"'{z}'" for z in _ZONE_TYPES[compartment])
+        cfg = self.entry.wise
+        zone_types = ", ".join(f"'{z}'" for z in cfg.zone_types_by_compartment[compartment])
         where = [
             "monitoringSiteIdentifier IS NOT NULL",
             "lon IS NOT NULL",
@@ -88,39 +65,40 @@ class WiseAdapter(StationAdapter):
 
         query = (
             "SELECT countryCode, monitoringSiteIdentifier, monitoringSiteName, lon, lat "
-            f"FROM {_TABLE} WHERE " + " AND ".join(where)
+            f"FROM {cfg.table} WHERE " + " AND ".join(where)
         )
 
         records = []
         page = 1
         while True:
             response = httpx.get(
-                _BASE_URL,
-                params={"query": query, "p": str(page), "nrOfHits": str(_PAGE_SIZE)},
+                self.entry.endpoint,
+                params={"query": query, "p": str(page), "nrOfHits": str(cfg.page_size)},
                 timeout=30.0,
             )
             response.raise_for_status()
             rows = response.json().get("results", [])
-            records.extend(_row_to_record(row, compartment, self.license) for row in rows)
+            records.extend(self._row_to_record(row, compartment) for row in rows)
 
-            if len(rows) < _PAGE_SIZE:
+            if len(rows) < cfg.page_size:
                 break
             page += 1
 
         return records
 
-
-def _row_to_record(row: dict, compartment: str, license_text: str) -> dict:
-    return {
-        "station_id": row["monitoringSiteIdentifier"],
-        "name": row.get("monitoringSiteName"),
-        "lon": row["lon"],
-        "lat": row["lat"],
-        "compartment": compartment,
-        "network": "WISE",
-        "start_date": None,
-        "end_date": None,
-        "wsi": None,
-        "license": license_text,
-        "redistribution_ok": True,
-    }
+    def _row_to_record(self, row: dict, compartment: str) -> dict:
+        return {
+            "source": self.source,
+            "source_id": row["monitoringSiteIdentifier"],
+            "name": row.get("monitoringSiteName"),
+            "lon": row["lon"],
+            "lat": row["lat"],
+            "compartment": compartment,
+            "variables": [],
+            "first_obs": None,
+            "last_obs": None,
+            "wsi": None,
+            "license": self.license,
+            "redistribution_ok": self.redistribution_ok,
+            "raw": row,
+        }

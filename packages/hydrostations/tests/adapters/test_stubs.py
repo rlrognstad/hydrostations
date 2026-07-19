@@ -3,10 +3,10 @@ import pytest
 from hydrostations.adapters.sierem import SieremAdapter
 from hydrostations.exceptions import AdapterNotImplementedError
 
-STUB_ADAPTERS = [SieremAdapter]
+STUB_ADAPTERS = {"sierem": SieremAdapter}
 
 
-@pytest.mark.parametrize("adapter_cls", STUB_ADAPTERS)
-def test_stub_adapter_raises_not_implemented(adapter_cls):
+@pytest.mark.parametrize("source_id,adapter_cls", STUB_ADAPTERS.items())
+def test_stub_adapter_raises_not_implemented(source_id, adapter_cls, register_entries):
     with pytest.raises(AdapterNotImplementedError):
-        adapter_cls().fetch_stations()
+        adapter_cls(register_entries[source_id]).fetch_stations()

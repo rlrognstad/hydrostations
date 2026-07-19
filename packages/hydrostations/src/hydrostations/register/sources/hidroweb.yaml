@@ -2,7 +2,7 @@ source_id: hidroweb
 name: HidroWeb / SNIRH
 operator: "Agencia Nacional de Aguas e Saneamento Basico (ANA)"
 protocol: arcgis_feature_server
-endpoint: >
+endpoint: >-
   https://portal1.snirh.gov.br/server/rest/services/Esta%C3%A7%C3%B5es_Hidrometeorol%C3%B3gicas_SNIRH/FeatureServer/0/query
 license: >
   Reproduction permitted with attribution ("E permitida a reproducao de
