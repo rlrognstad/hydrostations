@@ -14,6 +14,21 @@ from shapely.geometry import Point
 COMPARTMENTS = ("Q", "GW", "P", "SM", "ET", "SW", "SNOW", "WQ")
 
 
+def parse_timestamp(value: str | None) -> pd.Timestamp:
+    """Normalize a source's native timestamp string to the tz-naive form
+    `first_obs`/`last_obs` require.
+
+    Handles both tz-aware ("...Z"-suffixed ISO8601, e.g. WFS/GeoJSON
+    sources) and date-only strings (e.g. Hub'Eau's GW dates) -- `utc=True`
+    treats a bare date as UTC midnight, then the tz is stripped to match
+    the shared schema's naive datetime64[ns] columns.
+    """
+    if value is None:
+        return pd.NaT
+    parsed = pd.to_datetime(value, errors="coerce", utc=True)
+    return parsed.tz_localize(None) if parsed is not pd.NaT else parsed
+
+
 @dataclass(frozen=True)
 class Station:
     """The per-record contract every source (agency/network) adapter emits.

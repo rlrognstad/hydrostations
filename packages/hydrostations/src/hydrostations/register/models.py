@@ -134,6 +134,26 @@ class NwisEntry(SourceEntryBase):
     nwis: NwisConfig
 
 
+class HubeauCompartmentConfig(BaseModel):
+    path: str
+    id_field: str
+    name_field: str
+    lon_field: str
+    lat_field: str
+    first_obs_field: str | None = None
+    last_obs_field: str | None = None
+
+
+class HubeauConfig(BaseModel):
+    page_size: int = 1000
+    compartments: dict[str, HubeauCompartmentConfig]
+
+
+class HubeauEntry(SourceEntryBase):
+    protocol: Literal["hubeau"]
+    hubeau: HubeauConfig
+
+
 class WiseConfig(BaseModel):
     table: str
     page_size: int = 5000
@@ -151,7 +171,14 @@ class BulkEntry(SourceEntryBase):
 
 
 SourceEntry = Annotated[
-    KiwisEntry | WfsEntry | ArcGisEntry | OgcFeaturesEntry | NwisEntry | WiseEntry | BulkEntry,
+    KiwisEntry
+    | WfsEntry
+    | ArcGisEntry
+    | OgcFeaturesEntry
+    | NwisEntry
+    | WiseEntry
+    | HubeauEntry
+    | BulkEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)

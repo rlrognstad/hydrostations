@@ -13,20 +13,20 @@ NullPointerException when `startIndex` is combined with a `bbox` filter
 but no explicit sort. A future WFS source without that bug just omits it.
 
 Timestamp normalization (tz-aware "...Z" input -> tz-naive output, to
-match the shared schema's naive datetime64[ns] columns) is handled here
-as a genuinely WFS/GeoJSON-general concern, not GGMN-specific -- any
-GeoServer-backed source is likely to emit ISO8601 `Z`-suffixed timestamps.
+match the shared schema's naive datetime64[ns] columns) is handled via
+`schema.parse_timestamp()` -- a genuinely cross-adapter concern (Hub'Eau
+needs the same normalization for a different reason: date-only strings),
+not WFS/GGMN-specific.
 """
 
 from __future__ import annotations
 
 import geopandas as gpd
 import httpx
-import pandas as pd
 
 from hydrostations.adapters.base import BBox, SourceAdapter
 from hydrostations.register.models import WfsCollectionConfig
-from hydrostations.schema import stations_frame_from_records
+from hydrostations.schema import parse_timestamp, stations_frame_from_records
 
 
 class WfsAdapter(SourceAdapter):
@@ -95,17 +95,10 @@ class WfsAdapter(SourceAdapter):
             "lat": lat,
             "compartment": compartment,
             "variables": [],
-            "first_obs": _parse_timestamp(props.get(collection.start_field)),
-            "last_obs": _parse_timestamp(props.get(collection.end_field)),
+            "first_obs": parse_timestamp(props.get(collection.start_field)),
+            "last_obs": parse_timestamp(props.get(collection.end_field)),
             "wsi": None,
             "license": self.license,
             "redistribution_ok": self.redistribution_ok,
             "raw": props,
         }
-
-
-def _parse_timestamp(value: str | None) -> pd.Timestamp:
-    if value is None:
-        return pd.NaT
-    parsed = pd.to_datetime(value, errors="coerce", utc=True)
-    return parsed.tz_localize(None) if parsed is not pd.NaT else parsed

@@ -1,0 +1,39 @@
+source_id: hubeau
+name: Hub'Eau
+operator: Systeme d'Information sur l'Eau (SIE) - OFB / BRGM / Schapi, France
+protocol: hubeau
+endpoint: https://hubeau.eaufrance.fr/api
+license: "Etalab Open License 2.0 (Licence Ouverte), France"
+redistribution_ok: true
+compartments: [Q, GW]
+coverage:
+  - [-5.5, 41.0, 10.0, 51.5]  # mainland France; excludes overseas departments (DROM)
+notes: >
+  Confirmed live: clean JSON REST, real server-side bbox filtering,
+  page/size pagination via a "next" URL in the response body. No auth.
+  Q and GW are genuinely different sub-APIs (hydrometrie vs
+  niveaux_nappes) with different field names -- see hubeau.compartments
+  below. GW station records have no dedicated station-name field;
+  nom_commune (commune/town name) is used as the closest available label,
+  not a proper station name. Mainland-France-only coverage bbox; French
+  overseas departments (DROM) are excluded from this coarse box, matching
+  the project's existing pattern of hand-declared approximate coverage.
+hubeau:
+  page_size: 1000
+  compartments:
+    Q:
+      path: v2/hydrometrie/referentiel/stations
+      id_field: code_station
+      name_field: libelle_station
+      lon_field: longitude_station
+      lat_field: latitude_station
+      first_obs_field: date_ouverture_station
+      last_obs_field: date_fermeture_station
+    GW:
+      path: v1/niveaux_nappes/stations
+      id_field: code_bss
+      name_field: nom_commune
+      lon_field: x
+      lat_field: y
+      first_obs_field: date_debut_mesure
+      last_obs_field: date_fin_mesure
