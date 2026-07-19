@@ -1,0 +1,28 @@
+source_id: snotel
+name: SNOTEL / SCAN (Air and Water Database)
+operator: USDA Natural Resources Conservation Service (NRCS)
+protocol: snotel_awdb
+endpoint: https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1/stations
+license: "Public Domain (US Government Work, USDA NRCS)"
+redistribution_ok: true
+compartments: [SNOW, SM]
+coverage:
+  - [-170.0, 15.0, -65.0, 72.0]  # US incl. Alaska, Puerto Rico; coarse box
+notes: >
+  Confirmed live: clean JSON REST (AWDB REST API v1), no auth. No true
+  bbox/lat-lon spatial filter exists -- unrecognized query params are
+  silently ignored and the full multi-network station list comes back
+  regardless; the real server-side filter is the stationTriplets wildcard
+  (e.g. *:*:SNTL), used per compartment here. BulkFileAdapter applies the
+  bbox client-side, same shape as NRFA. Two networks under one platform
+  populate two compartments that had zero sources before this adapter:
+  SNTL (SNOTEL proper, confirmed 913 real stations) -> SNOW, SCAN (Soil
+  Climate Analysis Network, confirmed 211 real stations) -> SM. elevation
+  is in feet (confirmed against known Colorado high-altitude sites) and
+  converted to elevation_m -- first adapter alongside NRFA to populate a
+  previously-always-null placeholder field. endDate uses "2100-01-01" as
+  a sentinel for "still active," treated as no end date.
+snotel:
+  network_code_by_compartment:
+    SNOW: SNTL
+    SM: SCAN

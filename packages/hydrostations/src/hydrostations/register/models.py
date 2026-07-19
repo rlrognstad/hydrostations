@@ -183,6 +183,15 @@ class NrfaEntry(SourceEntryBase):
     nrfa: NrfaConfig
 
 
+class SnotelConfig(BaseModel):
+    network_code_by_compartment: dict[str, str]
+
+
+class SnotelEntry(SourceEntryBase):
+    protocol: Literal["snotel_awdb"]
+    snotel: SnotelConfig
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -192,7 +201,8 @@ SourceEntry = Annotated[
     | WiseEntry
     | HubeauEntry
     | SieremEntry
-    | NrfaEntry,
+    | NrfaEntry
+    | SnotelEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)

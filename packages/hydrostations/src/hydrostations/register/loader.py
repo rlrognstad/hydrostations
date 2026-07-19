@@ -20,6 +20,7 @@ from hydrostations.adapters.bespoke.nwis import NwisAdapter
 from hydrostations.adapters.bespoke.wise import WiseAdapter
 from hydrostations.adapters.bulk.nrfa import NrfaAdapter
 from hydrostations.adapters.bulk.sierem import SieremAdapter
+from hydrostations.adapters.bulk.snotel import SnotelAdapter
 from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
 from hydrostations.adapters.protocols.kiwis import KiWisAdapter
 from hydrostations.adapters.protocols.ogc_features import OgcFeaturesAdapter
@@ -42,6 +43,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "hubeau": HubeauAdapter,
     "bulk_kml": SieremAdapter,
     "nrfa_ws": NrfaAdapter,
+    "snotel_awdb": SnotelAdapter,
 }
 
 
