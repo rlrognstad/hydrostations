@@ -1,6 +1,6 @@
 import pytest
 
-from hydrostations.adapters.sierem import SieremAdapter
+from hydrostations.adapters.bulk.sierem import SieremAdapter
 from hydrostations.exceptions import AdapterNotImplementedError
 
 STUB_ADAPTERS = {"sierem": SieremAdapter}

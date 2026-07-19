@@ -67,3 +67,18 @@ class SourceAdapter(ABC):
         unsupported compartments before calling in.
         """
         raise NotImplementedError
+
+    def _skip_out_of_coverage(self, bbox: BBox | None) -> bool:
+        """Whether to skip fetching entirely because `bbox` can't intersect
+        this source's declared coverage.
+
+        Opt-in via the register entry's `skip_out_of_coverage` flag (only
+        NWIS sets it true, to avoid its own bbox-size API limit) --
+        deliberately NOT applied to every source by default. Coverage
+        bboxes are coarse, hand-declared approximations; skipping on them
+        could suppress genuinely valid results near a coverage-bbox edge
+        for a source that doesn't need the guard.
+        """
+        if not self.entry.skip_out_of_coverage or bbox is None:
+            return False
+        return not any(bboxes_intersect(bbox, c) for c in self.coverage)

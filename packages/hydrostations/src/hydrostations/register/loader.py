@@ -15,12 +15,12 @@ import yaml
 from pydantic import ValidationError
 
 from hydrostations.adapters.base import SourceAdapter
-from hydrostations.adapters.nwis import NwisAdapter
+from hydrostations.adapters.bespoke.nwis import NwisAdapter
+from hydrostations.adapters.bespoke.wise import WiseAdapter
+from hydrostations.adapters.bulk.sierem import SieremAdapter
 from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
 from hydrostations.adapters.protocols.kiwis import KiWisAdapter
 from hydrostations.adapters.protocols.wfs import WfsAdapter
-from hydrostations.adapters.sierem import SieremAdapter
-from hydrostations.adapters.wise import WiseAdapter
 from hydrostations.exceptions import RegisterError
 from hydrostations.register.models import SourceEntry, SourceEntryAdapter
 

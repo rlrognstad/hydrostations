@@ -24,7 +24,7 @@ import geopandas as gpd
 import httpx
 import pandas as pd
 
-from hydrostations.adapters.base import BBox, SourceAdapter, bboxes_intersect
+from hydrostations.adapters.base import BBox, SourceAdapter
 from hydrostations.schema import stations_frame_from_records
 
 _BASE_URL = "https://waterservices.usgs.gov/nwis/site/"
@@ -39,11 +39,7 @@ class NwisAdapter(SourceAdapter):
         bbox: BBox | None = None,
         compartment: str | None = None,
     ) -> gpd.GeoDataFrame:
-        if (
-            self.entry.skip_out_of_coverage
-            and bbox is not None
-            and not any(bboxes_intersect(bbox, c) for c in self.coverage)
-        ):
+        if self._skip_out_of_coverage(bbox):
             return stations_frame_from_records([])
 
         compartments = [compartment] if compartment else list(self.compartments)

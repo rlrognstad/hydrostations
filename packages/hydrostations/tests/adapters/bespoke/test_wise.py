@@ -2,7 +2,7 @@ import httpx
 import respx
 
 from hydrostations.adapters.base import BBox
-from hydrostations.adapters.wise import WiseAdapter
+from hydrostations.adapters.bespoke.wise import WiseAdapter
 
 
 def _row(site_id: str, lon: float = 2.0, lat: float = 46.0) -> dict:

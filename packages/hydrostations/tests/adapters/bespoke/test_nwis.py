@@ -2,7 +2,7 @@ import httpx
 import respx
 
 from hydrostations.adapters.base import BBox
-from hydrostations.adapters.nwis import NwisAdapter
+from hydrostations.adapters.bespoke.nwis import NwisAdapter
 
 _RDB_RESPONSE = (
     "# comment line, ignored\n"

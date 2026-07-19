@@ -15,11 +15,12 @@ from __future__ import annotations
 
 import geopandas as gpd
 
-from hydrostations.adapters.base import BBox, SourceAdapter
+from hydrostations.adapters.base import BBox
+from hydrostations.adapters.bulk.base import BulkFileAdapter
 from hydrostations.exceptions import AdapterNotImplementedError
 
 
-class SieremAdapter(SourceAdapter):
+class SieremAdapter(BulkFileAdapter):
     protocol = "bulk_kml"
 
     def fetch_stations(
