@@ -9,10 +9,20 @@ lookup. Whether each adapter is actually wired up (vs. a stub) is checked
 live with one small, remote-ocean probe request per adapter, so that part
 does need network access.
 
+Each source's declared coverage is rendered as a real country/continent
+shape, not the raw rectangle -- but always *clipped to that source's own
+declared bbox(es)*, never beyond it. A raw country polygon can include
+far-flung territory a source never actually claims (confirmed live:
+Natural Earth's "France" polygon includes French Guiana, ~7,000km from
+Hub'Eau's real mainland-only coverage box) -- clipping to the declared
+box first means the rendered shape can only ever be as accurate or *more*
+precise than the box, never less, and never overstates it. Sources with
+no entry in `_SOURCE_REGION_MATCH` fall back to the plain rectangle.
+
 This is meant to need almost no editing as adapters are added: any new
 adapter's `coverage`/`compartments` are picked up automatically from the
-registry. The one thing you may need to touch is `NETWORK_COLOR_SLOTS`
-below -- see its docstring.
+registry. You may want to add a `NETWORK_COLOR_SLOTS` entry (see its
+docstring) and a `_SOURCE_REGION_MATCH` entry for a real-shape outline.
 
 Run:
     uv run --package hydrostations python examples/render_coverage_map.py
@@ -25,6 +35,8 @@ from pathlib import Path
 
 import geopandas as gpd
 import httpx
+from shapely.geometry import box as shapely_box
+from shapely.ops import unary_union
 
 from hydrostations.adapters.base import BBox
 from hydrostations.core import _default_registry
@@ -34,14 +46,15 @@ SVG_WIDTH = 1000
 SVG_HEIGHT = 500  # 2:1 for a full -180..180 x -90..90 Plate Carree world map
 
 # Natural Earth 110m countries (public domain, no attribution required) --
-# fetched once at build time purely for visual context (which continent is
-# this box even over?), then simplified and embedded like everything else.
-# Coarse on purpose: this is a backdrop, not real admin-boundary data.
+# also the source of the real per-source coverage shapes, not just the
+# backdrop, so this is fetched as a GeoDataFrame (ADM0_A3/CONTINENT kept)
+# rather than pre-simplified rings.
 _WORLD_OUTLINE_URL = (
     "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/"
     "master/geojson/ne_110m_admin_0_countries.geojson"
 )
 _WORLD_OUTLINE_SIMPLIFY_TOLERANCE = 0.2  # degrees
+_COVERAGE_SIMPLIFY_TOLERANCE = 0.05  # finer than the backdrop -- these are the real subject
 
 # A bbox picked to be almost certainly station-free for every current and
 # future network (open Pacific, far from any coastline) -- used only to
@@ -70,6 +83,25 @@ NETWORK_COLOR_SLOTS: dict[str, str] = {
 _FALLBACK_COLOR = "#898781"  # muted ink; used if a network has no assigned slot yet
 
 GLOBAL_COVERAGE_THRESHOLD = (359.0, 179.0)  # (min lon-span, min lat-span) to count as "global"
+
+# Real-shape matching per source: a country (by Natural Earth ADM0_A3 -- NOT
+# ISO_A3, which is "-99" for France and some other countries in this
+# dataset, confirmed live) or a list of continents. Always clipped to the
+# source's own declared coverage bbox(es) afterward -- see module
+# docstring. Sources not listed here (or whose match produces an empty
+# clip) fall back to the plain rectangle.
+_SOURCE_REGION_MATCH: dict[str, dict] = {
+    "nwis": {"iso_a3": ["USA"]},
+    "bom": {"iso_a3": ["AUS"]},
+    "hidroweb": {"iso_a3": ["BRA"]},
+    "eccc": {"iso_a3": ["CAN"]},
+    "hubeau": {"iso_a3": ["FRA"]},
+    "nrfa": {"iso_a3": ["GBR"]},
+    "snotel": {"iso_a3": ["USA"]},
+    "cocorahs": {"iso_a3": ["USA"]},
+    "wise": {"continent": ["Europe"]},
+    "sierem": {"continent": ["Africa", "Europe"]},
+}
 
 
 def _is_global(coverage: tuple[BBox, ...]) -> bool:
@@ -108,29 +140,56 @@ def project_bbox(bbox: BBox) -> dict[str, float]:
     return {"x": round(x, 1), "y": round(y, 1), "w": round(w, 1), "h": round(h, 1)}
 
 
-def fetch_world_outline() -> list[dict]:
+def geom_to_rings(geom, *, simplify_tolerance: float) -> list[list[list[float]]]:
+    if geom is None or geom.is_empty:
+        return []
+    geom = geom.simplify(simplify_tolerance, preserve_topology=True)
+    polys = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
+    rings = []
+    for p in polys:
+        if p.exterior is None:
+            continue
+        rings.append([project_point(x, y) for x, y in p.exterior.coords])
+    return rings
+
+
+def fetch_countries() -> gpd.GeoDataFrame:
     response = httpx.get(_WORLD_OUTLINE_URL, timeout=30.0, follow_redirects=True)
     response.raise_for_status()
     gdf = gpd.GeoDataFrame.from_features(response.json()["features"], crs="EPSG:4326")
-    gdf["geometry"] = gdf.simplify(_WORLD_OUTLINE_SIMPLIFY_TOLERANCE, preserve_topology=True)
+    return gdf[["ADM0_A3", "CONTINENT", "geometry"]]
 
-    countries = []
-    for geom in gdf.geometry:
-        if geom is None or geom.is_empty:
-            continue
-        polys = list(geom.geoms) if geom.geom_type == "MultiPolygon" else [geom]
-        rings = [
-            [project_point(x, y) for x, y in p.exterior.coords]
-            for p in polys
-            if p.exterior is not None
-        ]
-        if rings:
-            countries.append({"rings": rings})
-    return countries
+
+def real_coverage_shape(source_id: str, coverage: tuple[BBox, ...], countries: gpd.GeoDataFrame):
+    """A source's real country/continent shape, clipped to its own declared
+    bbox(es) -- see module docstring for why the clip matters. Returns None
+    if there's no region match or the clip is empty, so the caller can fall
+    back to the plain rectangle."""
+    match = _SOURCE_REGION_MATCH.get(source_id)
+    if match is None:
+        return None
+
+    if "iso_a3" in match:
+        selected = countries[countries["ADM0_A3"].isin(match["iso_a3"])]
+    else:
+        selected = countries[countries["CONTINENT"].isin(match["continent"])]
+    if selected.empty:
+        return None
+
+    declared = unary_union([shapely_box(b.min_lon, b.min_lat, b.max_lon, b.max_lat) for b in coverage])
+    clipped = unary_union(selected.geometry.to_list()).intersection(declared)
+    return clipped if not clipped.is_empty else None
 
 
 def build_map_data() -> dict:
-    world = fetch_world_outline()
+    countries = fetch_countries()
+    world = [
+        {"rings": geom_to_rings(geom, simplify_tolerance=_WORLD_OUTLINE_SIMPLIFY_TOLERANCE)}
+        for geom in countries.geometry
+        if geom is not None and not geom.is_empty
+    ]
+    world = [c for c in world if c["rings"]]
+
     regional = []
     global_networks = []
 
@@ -145,14 +204,18 @@ def build_map_data() -> dict:
         if _is_global(adapter.coverage):
             global_networks.append(entry_base)
             continue
+
         color = NETWORK_COLOR_SLOTS.get(adapter.source, _FALLBACK_COLOR)
-        regional.append(
-            {
-                **entry_base,
-                "color": color,
-                "boxes": [project_bbox(b) for b in adapter.coverage],
-            }
-        )
+        shape = real_coverage_shape(adapter.source, adapter.coverage, countries)
+        if shape is not None:
+            rings = geom_to_rings(shape, simplify_tolerance=_COVERAGE_SIMPLIFY_TOLERANCE)
+            centroid = shape.centroid
+            label_at = project_point(centroid.x, centroid.y)
+            regional.append({**entry_base, "color": color, "rings": rings, "label_at": label_at})
+        else:
+            regional.append(
+                {**entry_base, "color": color, "boxes": [project_bbox(b) for b in adapter.coverage]}
+            )
 
     return {
         "width": SVG_WIDTH,
@@ -177,6 +240,9 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     --global-wash:    rgba(137,135,129,0.16);
     --land-fill:      #f2f1ec;
     --land-stroke:    #c3c2b7;
+    --chip-bg:        #f2f1ec;
+    --chip-active:    #0b0b0b;
+    --chip-active-fg: #fcfcfb;
   }}
   @media (prefers-color-scheme: dark) {{
     :root:where(:not([data-theme="light"])) .viz-root {{
@@ -191,6 +257,9 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
       --global-wash:    rgba(137,135,129,0.22);
       --land-fill:      #232322;
       --land-stroke:    #3a3a38;
+      --chip-bg:        #232322;
+      --chip-active:    #ffffff;
+      --chip-active-fg: #0d0d0d;
     }}
   }}
   :root[data-theme="dark"] .viz-root {{
@@ -205,6 +274,9 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     --global-wash:    rgba(137,135,129,0.22);
     --land-fill:      #232322;
     --land-stroke:    #3a3a38;
+    --chip-bg:        #232322;
+    --chip-active:    #ffffff;
+    --chip-active-fg: #0d0d0d;
   }}
 
   * {{ box-sizing: border-box; }}
@@ -225,7 +297,28 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     padding: 20px 24px 24px;
   }}
   h1 {{ font-size: 18px; font-weight: 600; margin: 0 0 4px; }}
-  .subtitle {{ font-size: 13px; color: var(--text-secondary); margin: 0 0 16px; max-width: 70ch; }}
+  .subtitle {{ font-size: 13px; color: var(--text-secondary); margin: 0 0 14px; max-width: 70ch; }}
+
+  .compartment-filter {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }}
+  .chip {{
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 5px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--chip-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }}
+  .chip.active {{ background: var(--chip-active); color: var(--chip-active-fg); border-color: var(--chip-active); }}
+
   .layout {{ display: flex; gap: 20px; align-items: flex-start; }}
   .map-wrap {{
     position: relative;
@@ -240,10 +333,11 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
   .land-poly {{ fill: var(--land-fill); stroke: var(--land-stroke); stroke-width: 0.75; }}
   .graticule {{ stroke: var(--graticule); stroke-width: 1; }}
   .global-wash {{ fill: var(--global-wash); }}
-  .coverage-box {{ fill-opacity: 0.14; stroke-width: 1.6; cursor: pointer; }}
-  .coverage-box:hover {{ fill-opacity: 0.28; }}
-  .coverage-box.stub {{ stroke-dasharray: 5 3; fill-opacity: 0.06; }}
-  .coverage-box.stub:hover {{ fill-opacity: 0.14; }}
+  .coverage-shape {{ fill-opacity: 0.22; stroke-width: 1.2; cursor: pointer; }}
+  .coverage-shape:hover {{ fill-opacity: 0.4; }}
+  .coverage-shape.stub {{ stroke-dasharray: 5 3; fill-opacity: 0.08; }}
+  .coverage-shape.stub:hover {{ fill-opacity: 0.16; }}
+  .dimmed {{ display: none; }}
   .box-label {{
     font-size: 11px;
     font-weight: 600;
@@ -269,7 +363,11 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     gap: 8px;
     padding: 6px 4px;
     border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
   }}
+  .legend-item:hover {{ background: var(--border); }}
+  .legend-item input {{ margin: 3px 0 0; accent-color: var(--text-primary); }}
   .swatch {{
     width: 14px;
     height: 14px;
@@ -320,11 +418,14 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     <h1>hydrostations: declared network coverage</h1>
     <p class="subtitle">
       Each network's own declared coverage area, generated directly from the
-      adapter registry -- not live station counts. Solid borders are wired-up
-      adapters (verified with a live probe request when this page was
-      generated); dashed are stubs with a declared area but no working
-      fetch yet. Hover any region for details.
+      adapter registry -- not live station counts. Where a real country or
+      continent shape is available it's shown clipped to the declared area
+      (never beyond it); otherwise a plain rectangle. Solid borders are
+      wired-up adapters (verified with a live probe request when this page
+      was generated); dashed are stubs. Filter by compartment below, or
+      toggle networks in the legend.
     </p>
+    <div class="compartment-filter" id="compartment-filter"></div>
     <div class="layout">
       <div class="map-wrap">
         <svg id="map" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -340,12 +441,19 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
 <script>
 (function () {{
   const data = {data_json};
+  const ALL_COMPARTMENTS = ["Q", "GW", "P", "SM", "ET", "SW", "SNOW", "WQ"];
 
   const svg = document.getElementById('map');
   const legend = document.getElementById('legend');
+  const compartmentFilterEl = document.getElementById('compartment-filter');
   const tooltip = document.getElementById('tooltip');
   const wrap = document.querySelector('.map-wrap');
   const NS = 'http://www.w3.org/2000/svg';
+
+  const activeCompartments = new Set(ALL_COMPARTMENTS);
+  const activeNetworks = new Set(
+    [...data.regional, ...data.global_networks].map(n => n.network)
+  );
 
   function el(tag, attrs) {{
     const e = document.createElementNS(NS, tag);
@@ -369,6 +477,11 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     return rings.map(ring => 'M' + ring.map(p => p.join(',')).join('L') + 'Z').join(' ');
   }}
 
+  function matchesFilter(net) {{
+    if (!activeNetworks.has(net.network)) return false;
+    return net.compartments.some(c => activeCompartments.has(c));
+  }}
+
   // world outline (context only, no interactivity of its own)
   for (const country of data.world) {{
     svg.appendChild(el('path', {{d: ringsToPath(country.rings), class: 'land-poly'}}));
@@ -384,6 +497,8 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     svg.appendChild(el('line', {{x1: 0, y1: y, x2: data.width, y2: y, class: 'graticule'}}));
   }}
 
+  const shapeEls = [];
+
   // global-coverage networks: a single background wash, not a competing hue
   for (const net of data.global_networks) {{
     const rect = el('rect', {{
@@ -395,39 +510,86 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
       (net.implemented ? '' : ' &middot; not yet implemented')));
     rect.addEventListener('mouseleave', hideTooltip);
     svg.appendChild(rect);
+    shapeEls.push({{ el: rect, net }});
   }}
 
   for (const net of data.regional) {{
-    for (const box of net.boxes) {{
-      const rect = el('rect', {{
-        x: box.x, y: box.y, width: box.w, height: box.h,
-        fill: net.color, stroke: net.color,
-        class: 'coverage-box' + (net.implemented ? '' : ' stub'),
-      }});
-      rect.addEventListener('mousemove', e => showTooltip(e, net.network,
-        net.compartments.join(', ') + (net.implemented ? '' : ' &middot; not yet implemented')));
-      rect.addEventListener('mouseleave', hideTooltip);
-      svg.appendChild(rect);
+    const shapes = net.rings
+      ? [{{ path: ringsToPath(net.rings) }}]
+      : net.boxes.map(box => ({{ box }}));
 
-      if (box.w > 40 && box.h > 14) {{
-        const label = el('text', {{
-          x: box.x + box.w / 2, y: box.y + box.h / 2,
-          'text-anchor': 'middle', 'dominant-baseline': 'middle',
-          class: 'box-label',
-        }});
-        label.textContent = net.network;
-        label.style.pointerEvents = 'none';
-        svg.appendChild(label);
-      }}
+    for (const shape of shapes) {{
+      const attrs = shape.path
+        ? {{ d: shape.path, fill: net.color, stroke: net.color, class: 'coverage-shape' + (net.implemented ? '' : ' stub') }}
+        : {{ x: shape.box.x, y: shape.box.y, width: shape.box.w, height: shape.box.h,
+             fill: net.color, stroke: net.color, class: 'coverage-shape' + (net.implemented ? '' : ' stub') }};
+      const shapeEl = el(shape.path ? 'path' : 'rect', attrs);
+      shapeEl.addEventListener('mousemove', e => showTooltip(e, net.network,
+        net.compartments.join(', ') + (net.implemented ? '' : ' &middot; not yet implemented')));
+      shapeEl.addEventListener('mouseleave', hideTooltip);
+      svg.appendChild(shapeEl);
+      shapeEls.push({{ el: shapeEl, net }});
+    }}
+
+    const labelAt = net.label_at || (net.boxes.length && net.boxes[0].w > 40 && net.boxes[0].h > 14
+      ? {{ x: net.boxes[0].x + net.boxes[0].w / 2, y: net.boxes[0].y + net.boxes[0].h / 2 }}
+      : null);
+    if (labelAt) {{
+      const x = labelAt.x !== undefined ? labelAt.x : labelAt[0];
+      const y = labelAt.y !== undefined ? labelAt.y : labelAt[1];
+      const label = el('text', {{
+        x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', class: 'box-label',
+      }});
+      label.textContent = net.network;
+      label.style.pointerEvents = 'none';
+      svg.appendChild(label);
+      shapeEls.push({{ el: label, net, isLabel: true }});
     }}
   }}
 
-  function legendRow(colorSwatchHtml, label, meta) {{
-    const row = document.createElement('div');
+  function applyFilters() {{
+    for (const {{ el, net }} of shapeEls) {{
+      el.classList.toggle('dimmed', !matchesFilter(net));
+    }}
+  }}
+
+  // compartment filter chips
+  for (const c of ALL_COMPARTMENTS) {{
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip active';
+    chip.textContent = c;
+    chip.addEventListener('click', () => {{
+      if (activeCompartments.has(c)) {{
+        activeCompartments.delete(c);
+        chip.classList.remove('active');
+      }} else {{
+        activeCompartments.add(c);
+        chip.classList.add('active');
+      }}
+      applyFilters();
+    }});
+    compartmentFilterEl.appendChild(chip);
+  }}
+
+  function legendRow(net, colorSwatchHtml, label, meta) {{
+    const row = document.createElement('label');
     row.className = 'legend-item';
-    row.innerHTML = colorSwatchHtml +
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = true;
+    input.addEventListener('change', () => {{
+      if (input.checked) activeNetworks.add(net.network);
+      else activeNetworks.delete(net.network);
+      applyFilters();
+    }});
+    row.appendChild(input);
+    const rest = document.createElement('span');
+    rest.style.display = 'contents';
+    rest.innerHTML = colorSwatchHtml +
       '<div class="legend-text"><span class="legend-label">' + label +
       '</span><span class="legend-meta">' + meta + '</span></div>';
+    row.appendChild(rest);
     return row;
   }}
 
@@ -436,13 +598,13 @@ HTML_TEMPLATE = """<title>hydrostations network coverage</title>
     const swatchStyle = net.implemented ? ('background:' + net.color + ';') : '';
     const swatch = '<span class="' + swatchClass + '" style="' + swatchStyle + '"></span>';
     const status = net.implemented ? 'implemented' : 'stub';
-    legend.appendChild(legendRow(swatch, net.network, net.compartments.join(', ') + ' &middot; ' + status));
+    legend.appendChild(legendRow(net, swatch, net.network, net.compartments.join(', ') + ' &middot; ' + status));
   }}
   for (const net of data.global_networks) {{
     const swatchClass = 'swatch' + (net.implemented ? '' : ' stub');
     const swatch = '<span class="' + swatchClass + '" style="background: var(--global-wash);"></span>';
     const status = net.implemented ? 'implemented' : 'stub';
-    legend.appendChild(legendRow(swatch, net.network + ' (global)', net.compartments.join(', ') + ' &middot; ' + status));
+    legend.appendChild(legendRow(net, swatch, net.network + ' (global)', net.compartments.join(', ') + ' &middot; ' + status));
   }}
 }})();
 </script>
@@ -465,7 +627,8 @@ def main() -> None:
     print(f"wrote {out_path} ({len(html) / 1024:.0f} KB)")
     for net in map_data["regional"] + map_data["global_networks"]:
         status = "implemented" if net["implemented"] else "stub"
-        print(f"  {net['network']}: {net['compartments']} ({status})")
+        shape_kind = "real shape" if net.get("rings") else "bbox"
+        print(f"  {net['network']}: {net['compartments']} ({status}, {shape_kind})")
 
 
 if __name__ == "__main__":
