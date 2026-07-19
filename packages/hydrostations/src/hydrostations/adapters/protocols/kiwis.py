@@ -63,8 +63,15 @@ class KiWisAdapter(SourceAdapter):
             return []
 
         header, *rows = payload
+        records = (dict(zip(header, row, strict=True)) for row in rows)
         return [
-            self._row_to_record(dict(zip(header, row, strict=True)), compartment) for row in rows
+            self._row_to_record(r, compartment)
+            for r in records
+            # A minority of rows come back with an empty-string lon/lat
+            # (confirmed live: BoM, queried with no bbox at all) -- a
+            # station with no location isn't usable data, so skip it
+            # rather than crash on float('').
+            if r.get(cfg.lon_field) and r.get(cfg.lat_field)
         ]
 
     def _row_to_record(self, row: dict[str, str], compartment: str) -> dict:
