@@ -2,7 +2,11 @@ import httpx
 import respx
 
 from hydrostations.adapters.base import BBox
-from hydrostations.adapters.ggmn import GgmnAdapter
+from hydrostations.adapters.protocols.wfs import WfsAdapter
+
+# Tested against the real GGMN register entry -- our only current wfs
+# instance -- which also doubles as a regression check that the
+# generalized adapter still serves GGMN correctly.
 
 
 def _feature(fid: int, lon: float = 6.0, lat: float = 50.0) -> dict:
@@ -23,7 +27,7 @@ def test_fetch_stations_parses_single_page(mocked_api: respx.MockRouter, registe
         return_value=httpx.Response(200, json={"features": [_feature(1), _feature(2)]})
     )
 
-    frame = GgmnAdapter(register_entries["ggmn"]).fetch_stations(compartment="GW")
+    frame = WfsAdapter(register_entries["ggmn"]).fetch_stations(compartment="GW")
 
     assert len(frame) == 2
     row = frame.iloc[0]
@@ -52,7 +56,7 @@ def test_fetch_stations_paginates_until_short_page(mocked_api: respx.MockRouter,
         httpx.Response(200, json={"features": short_page}),
     ]
 
-    frame = GgmnAdapter(entry).fetch_stations(compartment="GW")
+    frame = WfsAdapter(entry).fetch_stations(compartment="GW")
 
     assert len(frame) == page_size + 2
     assert route.call_count == 2
@@ -65,7 +69,7 @@ def test_fetch_stations_unsupported_compartment_skips_request(
 ):
     # No route registered -- if the adapter made a request anyway, respx
     # would raise for the unmatched call.
-    frame = GgmnAdapter(register_entries["ggmn"]).fetch_stations(compartment="Q")
+    frame = WfsAdapter(register_entries["ggmn"]).fetch_stations(compartment="Q")
     assert frame.empty
 
 
@@ -74,7 +78,7 @@ def test_fetch_stations_includes_bbox_param(mocked_api: respx.MockRouter, regist
         return_value=httpx.Response(200, json={"features": []})
     )
 
-    GgmnAdapter(register_entries["ggmn"]).fetch_stations(
+    WfsAdapter(register_entries["ggmn"]).fetch_stations(
         bbox=BBox(min_lon=4.0, min_lat=50.0, max_lon=7.0, max_lat=54.0), compartment="GW"
     )
 

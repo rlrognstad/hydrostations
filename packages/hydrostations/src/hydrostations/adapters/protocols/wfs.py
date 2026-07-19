@@ -1,29 +1,21 @@
-"""GGMN (Global Groundwater Monitoring Network, IGRAC) adapter.
+"""Generic OGC WFS 2.0 protocol adapter.
 
-Uses IGRAC's GeoServer WFS 2.0 endpoint (https://ggis.un-igrac.org/geoserver/ows),
-querying the `groundwater:GGMN_Levels_Data` layer directly -- no auth, no MOU
-needed for read access (an MOU only governs institutions contributing data
-into GGMN, a different relationship than reading published records). Output
-format is GeoJSON.
+WFS 2.0 is a real, widely-used OGC standard -- GeoServer backs a lot of
+government open data (proven here by GGMN's real deployment). A new
+agency on this protocol is a register entry, not a new Python class.
+Endpoint, page size, and per-compartment collection config (type name,
+id/name/start/end field names) all come from the register entry's `wfs`
+config block.
 
-Paginates via `startIndex`/`count`; GeoServer here throws a server-side
-NullPointerException when `startIndex` is combined with a `bbox` filter but
-no explicit `sortBy` -- sorting by `id` avoids it (a real bug worked around,
-not a documented requirement, hence the register's `sort_by` config knob).
+`sort_by` is an optional workaround knob, not a spec requirement: some
+GeoServer deployments (verified on GGMN's) throw a server-side
+NullPointerException when `startIndex` is combined with a `bbox` filter
+but no explicit sort. A future WFS source without that bug just omits it.
 
-Licensing: the dataset's own metadata (constraints_other, via
-https://ggis.un-igrac.org/api/v2/datasets/2472/) states CC BY-NC-SA 4.0
-(Attribution-NonCommercial-ShareAlike), not the plainer "CC BY" sometimes
-quoted informally -- and the license identifier itself is `varied_derived`,
-since GGMN aggregates data from many national authorities who may attach
-their own terms. `redistribution_ok=True` here because redistribution is
-genuinely allowed, just conditioned on non-commercial use and share-alike --
-conditions this package doesn't have a dedicated field for, so they live in
-the `license` string for now.
-
-This is genuinely a reusable protocol (OGC WFS 2.0 is a real standard,
-GeoServer backs a lot of government open data) -- generalizing it into a
-shared `WfsAdapter` is a separate, later step.
+Timestamp normalization (tz-aware "...Z" input -> tz-naive output, to
+match the shared schema's naive datetime64[ns] columns) is handled here
+as a genuinely WFS/GeoJSON-general concern, not GGMN-specific -- any
+GeoServer-backed source is likely to emit ISO8601 `Z`-suffixed timestamps.
 """
 
 from __future__ import annotations
@@ -33,10 +25,11 @@ import httpx
 import pandas as pd
 
 from hydrostations.adapters.base import BBox, SourceAdapter
+from hydrostations.register.models import WfsCollectionConfig
 from hydrostations.schema import stations_frame_from_records
 
 
-class GgmnAdapter(SourceAdapter):
+class WfsAdapter(SourceAdapter):
     protocol = "wfs"
 
     def fetch_stations(
@@ -45,12 +38,16 @@ class GgmnAdapter(SourceAdapter):
         bbox: BBox | None = None,
         compartment: str | None = None,
     ) -> gpd.GeoDataFrame:
-        if compartment is not None and compartment not in self.compartments:
-            return stations_frame_from_records([])
-        c = compartment or self.compartments[0]
-        return stations_frame_from_records(self._fetch_all(bbox=bbox, compartment=c))
+        cfg = self.entry.wfs
+        compartments = [compartment] if compartment else list(self.compartments)
+        records = []
+        for c in compartments:
+            if c not in self.compartments or c not in cfg.collections:
+                continue
+            records.extend(self._fetch_collection(bbox=bbox, compartment=c))
+        return stations_frame_from_records(records)
 
-    def _fetch_all(self, *, bbox: BBox | None, compartment: str) -> list[dict]:
+    def _fetch_collection(self, *, bbox: BBox | None, compartment: str) -> list[dict]:
         cfg = self.entry.wfs
         collection = cfg.collections[compartment]
         records = []
@@ -74,8 +71,7 @@ class GgmnAdapter(SourceAdapter):
 
             response = httpx.get(self.entry.endpoint, params=params, timeout=60.0)
             response.raise_for_status()
-            payload = response.json()
-            features = payload.get("features", [])
+            features = response.json().get("features", [])
             records.extend(
                 self._feature_to_record(f, compartment, collection) for f in features
             )
@@ -86,7 +82,9 @@ class GgmnAdapter(SourceAdapter):
 
         return records
 
-    def _feature_to_record(self, feature: dict, compartment: str, collection) -> dict:
+    def _feature_to_record(
+        self, feature: dict, compartment: str, collection: WfsCollectionConfig
+    ) -> dict:
         props = feature["properties"]
         lon, lat = feature["geometry"]["coordinates"]
         return {
@@ -107,8 +105,7 @@ class GgmnAdapter(SourceAdapter):
 
 
 def _parse_timestamp(value: str | None) -> pd.Timestamp:
-    # GGMN's timestamps are UTC ("...Z"); the shared schema stores naive
-    # datetime64[ns], so the tz has to be dropped after parsing rather than
-    # just letting pd.to_datetime infer a tz-aware dtype.
+    if value is None:
+        return pd.NaT
     parsed = pd.to_datetime(value, errors="coerce", utc=True)
     return parsed.tz_localize(None) if parsed is not pd.NaT else parsed
