@@ -192,6 +192,18 @@ class SnotelEntry(SourceEntryBase):
     snotel: SnotelConfig
 
 
+class CocorahsConfig(BaseModel):
+    # No "all states" mode exists (confirmed live: it crashes the server)
+    # and no bbox filter either -- the full inventory is one request per
+    # jurisdiction, so the jurisdiction list itself is real, tunable config.
+    states: list[str]
+
+
+class CocorahsEntry(SourceEntryBase):
+    protocol: Literal["cocorahs_export"]
+    cocorahs: CocorahsConfig
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -202,7 +214,8 @@ SourceEntry = Annotated[
     | HubeauEntry
     | SieremEntry
     | NrfaEntry
-    | SnotelEntry,
+    | SnotelEntry
+    | CocorahsEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)

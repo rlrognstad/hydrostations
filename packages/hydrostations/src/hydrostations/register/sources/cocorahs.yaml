@@ -1,0 +1,36 @@
+source_id: cocorahs
+name: Community Collaborative Rain, Hail & Snow Network (CoCoRaHS)
+operator: CoCoRaHS (Colorado State University / NOAA)
+protocol: cocorahs_export
+endpoint: https://data.cocorahs.org/cocorahs/export/exportstations.aspx
+license: "CC BY 3.0, CoCoRaHS"
+redistribution_ok: true
+compartments: [P]
+coverage:
+  - [-125.0, 24.0, -66.0, 49.5]  # CONUS
+  - [-170.0, 51.0, -129.0, 72.0]  # Alaska
+  - [-160.5, 18.5, -154.5, 22.5]  # Hawaii
+notes: >
+  Confirmed live: the documented Web API (api2.cocorahs.org) requires an
+  API key ("Authorization has been denied for this request" without one).
+  A separate, genuinely anonymous XML export endpoint
+  (exportstations.aspx) is real and unauthenticated, but has no bbox
+  filter and no "all states" mode -- state=a crashed the server with an
+  OutOfMemoryException. Only a real per-state filter exists, so the full
+  inventory is one request per state in the list below, aggregated, then
+  filtered client-side (BulkFileAdapter), same shape as NRFA/SNOTEL.
+  Real gotcha: the "currently reporting" status string is "Reporting",
+  not "Active" -- confirmed live (Colorado: 0 stations with status
+  "Active" vs 1,967 real "Reporting" out of 8,969 total). 50 states + DC
+  covered below; Puerto Rico and Canadian provinces (CoCoRaHS also
+  operates there) are not included in the states list -- a coarse
+  limitation, not a technical one. Performance note: a full 51-state
+  fetch takes ~38s live (one sequential HTTP request per state, no way
+  to batch) -- noticeably slower than every other source in this
+  register; a caller doing a broad multi-source query should expect
+  CoCoRaHS to dominate the wall-clock time.
+cocorahs:
+  states:
+    [AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA, HI, ID, IL, IN, IA, KS, KY, LA,
+     ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC, ND, OH, OK,
+     OR, PA, RI, SC, SD, TN, TX, UT, VT, VA, WA, WV, WI, WY, DC]
