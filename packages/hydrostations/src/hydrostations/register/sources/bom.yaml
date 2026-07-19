@@ -11,6 +11,14 @@ coverage:
 notes: >
   KISTERS WISKI/KiWIS backend. Coverage bbox is a coarse hand declaration,
   not verified against a live source. Verified live for both Q and GW.
+  return_fields is deliberately just the four fields the adapter actually
+  reads (id/name/lat/lon) -- the original adapter also requested
+  station_id/object_type/parametertype_name, unused dead weight carried
+  over without question, and live testing during the protocol-adapter
+  refactor found both object_type and parametertype_name currently trigger
+  a server-side "DatasourceError: Could not access WDP" 500 on BoM's
+  backend. Not related to our code; dropping the unused fields both fixes
+  it and removes dead weight.
 kiwis:
   datasource: "0"
   id_field: station_no
@@ -22,9 +30,6 @@ kiwis:
     - station_name
     - station_latitude
     - station_longitude
-    - station_id
-    - object_type
-    - parametertype_name
   parameter_type_by_compartment:
     Q: "Water Course Discharge"
     GW: "Ground Water Level"

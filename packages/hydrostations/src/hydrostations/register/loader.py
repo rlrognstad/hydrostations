@@ -15,10 +15,10 @@ import yaml
 from pydantic import ValidationError
 
 from hydrostations.adapters.base import SourceAdapter
-from hydrostations.adapters.bom import BomAdapter
 from hydrostations.adapters.ggmn import GgmnAdapter
 from hydrostations.adapters.nwis import NwisAdapter
 from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
+from hydrostations.adapters.protocols.kiwis import KiWisAdapter
 from hydrostations.adapters.sierem import SieremAdapter
 from hydrostations.adapters.wise import WiseAdapter
 from hydrostations.exceptions import RegisterError
@@ -30,7 +30,7 @@ _SOURCES_DIR = Path(__file__).parent / "sources"
 # (e.g. a second KiWIS agency) share one class. Updated as adapters move
 # into adapters/protocols|bespoke|bulk/ during the generalization steps.
 _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
-    "kiwis": BomAdapter,
+    "kiwis": KiWisAdapter,
     "wfs": GgmnAdapter,
     "arcgis_feature_server": ArcGisFeatureServerAdapter,
     "nwis_rdb": NwisAdapter,
