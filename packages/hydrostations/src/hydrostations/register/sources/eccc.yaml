@@ -1,0 +1,29 @@
+source_id: eccc
+name: Water Survey of Canada Hydrometric Network
+operator: Environment and Climate Change Canada (ECCC)
+protocol: ogc_features
+endpoint: https://api.weather.gc.ca/collections
+license: "Open Government Licence - Canada"
+redistribution_ok: true
+compartments: [Q]
+coverage:
+  - [-141.0, 41.0, -52.0, 83.5]  # Canada, mainland + Arctic archipelago
+notes: >
+  Confirmed live: genuine OGC API-Features (api.weather.gc.ca), standard
+  bbox/limit/offset paging, numberReturned < limit signals the last page.
+  The hydrometric-stations collection is streamflow/water-level only -- no
+  groundwater collection exists on this API. No auth required.
+  USGS's own modernized OGC API-Features endpoint
+  (api.waterdata.usgs.gov/ogcapi/v0) was also confirmed live during this
+  source's investigation, speaking the same real standard -- this validates
+  OgcFeaturesAdapter as a genuinely reusable protocol beyond just ECCC, not
+  a one-off. USGS isn't registered under this protocol here since NWIS's
+  existing bespoke RDB adapter already covers it; migrating it is a
+  separate, later decision.
+ogc_features:
+  page_size: 500
+  collections:
+    Q:
+      collection: hydrometric-stations
+      id_field: STATION_NUMBER
+      name_field: STATION_NAME
