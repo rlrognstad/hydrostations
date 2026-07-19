@@ -9,9 +9,9 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
 
-# Streamflow, groundwater, precipitation, and a catch-all for everything
-# else (e.g. water quality) until that gets its own dedicated code.
-COMPARTMENTS = ("Q", "GW", "P", "other")
+# Streamflow, groundwater, precipitation, soil moisture, evapotranspiration,
+# surface water (lakes/reservoirs/coastal), snow, water quality.
+COMPARTMENTS = ("Q", "GW", "P", "SM", "ET", "SW", "SNOW", "WQ")
 
 
 @dataclass(frozen=True)
