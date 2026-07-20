@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>hydrostations: one API over every gauge network</title>
+  <meta name="description" content="A Python library unifying live-verified hydrological station catalogs (streamflow, groundwater, precipitation, snow, soil moisture) across government agencies, research compilations, and citizen-science networks." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <nav class="nav">
+    <a class="nav-mark" href="#top">hydrostations</a>
+    <ul class="nav-links">
+      <li><a href="#register">Registry</a></li>
+      <li><a href="#coverage">Coverage</a></li>
+      <li><a href="https://github.com/rlrognstad/hydrostations">GitHub</a></li>
+    </ul>
+  </nav>
+
+  <header class="hero" id="top">
+    <figure class="hero-photo-frame">
+      <picture>
+        <source srcset="assets/hero.webp" type="image/webp" />
+        <img src="assets/hero.jpg" alt="Close, rippled surface of dark blue water" />
+      </picture>
+      <svg class="hero-trace" viewBox="0 0 600 220" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M -10,170 C 40,168 70,164 100,150 C 130,136 145,105 170,90
+                 C 195,75 210,80 225,100 C 242,122 250,150 270,158
+                 C 295,168 330,155 360,140 C 395,122 420,118 450,128
+                 C 480,138 510,142 610,132" />
+      </svg>
+      <figcaption>
+        Photo:
+        <a href="https://unsplash.com/@jorgeluis?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Jorge Vasconez</a>,
+        <a href="https://unsplash.com/photos/blue-shallow-water-LCaKuYefLQk?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Unsplash</a>
+      </figcaption>
+    </figure>
+    <div class="wrap">
+      <div class="hero-copy">
+        <h1>hydrostations</h1>
+        <p class="hero-sub">
+          One API encompassing hydrological station catalogs from national
+          agencies, research groups, and volunteer networks.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#quickstart">Get started</a>
+          <a class="btn btn-ghost" href="https://github.com/rlrognstad/hydrostations">View on GitHub</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="on-paper" id="why">
+    <div class="wrap">
+      <blockquote class="motivation">
+        <p>The motivation for hydrostations is observability.</p>
+        <p>
+          More features of the water cycle are visible via remote sensing,
+          and can be simulated through increasingly complex digital
+          models. hydrostations exists to understand the distribution of
+          in&nbsp;situ stations measuring hydrological parameters,
+          providing insight into where we can, and cannot, see this vital
+          resource.
+        </p>
+        <p>
+          The station is the unit of interest. hydrostations is designed to
+          complement other tools in the space, like
+          <a href="https://github.com/hyex-research/AquaFetch">AquaFetch</a>
+          and
+          <a href="https://cran.r-project.org/package=hydrodownloadR">hydrodownloadR</a>.
+        </p>
+      </blockquote>
+    </div>
+  </section>
+
+  <section id="registry">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Registry</h2>
+        <p>
+          Declared in YAML, not hardcoded per agency. <code>source_class</code>
+          marks whether a feed is an official service, an academic
+          compilation, or a volunteer network. Each comes with different
+          liveness and quality expectations. The first column is what you'd
+          pass to <code>get_stations(source=…)</code>.
+        </p>
+      </div>
+
+      <ul class="compartment-glossary">
+        <li><b>Q</b> streamflow</li>
+        <li><b>GW</b> groundwater</li>
+        <li><b>P</b> precipitation</li>
+        <li><b>SM</b> soil moisture</li>
+        <li><b>ET</b> evapotranspiration</li>
+        <li><b>SW</b> surface water</li>
+        <li><b>SNOW</b> snow</li>
+        <li><b>WQ</b> water quality</li>
+      </ul>
+
+      <div class="register-filters">
+        <div class="filter-group" data-filter-group="compartment">
+          <span class="filter-label">Compartment</span>
+          <button type="button" class="chip active" data-value="Q">Q</button>
+          <button type="button" class="chip active" data-value="GW">GW</button>
+          <button type="button" class="chip active" data-value="P">P</button>
+          <button type="button" class="chip active" data-value="SM">SM</button>
+          <button type="button" class="chip active" data-value="ET">ET</button>
+          <button type="button" class="chip active" data-value="SW">SW</button>
+          <button type="button" class="chip active" data-value="SNOW">SNOW</button>
+          <button type="button" class="chip active" data-value="WQ">WQ</button>
+        </div>
+        <div class="filter-group" data-filter-group="class">
+          <span class="filter-label">Class</span>
+          <button type="button" class="chip active" data-value="agency">Agency</button>
+          <button type="button" class="chip active" data-value="research">Research</button>
+          <button type="button" class="chip active" data-value="citizen">Citizen</button>
+        </div>
+      </div>
+
+      <div class="register" id="register-table">
+        <div class="register-row head">
+          <div>Source</div>
+          <div>Class</div>
+          <div>Compartments</div>
+          <div>Coverage</div>
+        </div>
+
+        <div class="register-row" data-class="agency" data-compartments="Q,GW">
+          <div class="reg-name"><a href="https://waterdata.usgs.gov/nwis" target="_blank" rel="noopener"><code>nwis</code></a><small>USGS National Water Information System</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">Q · GW</div>
+          <div class="reg-status">United States</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="Q,GW">
+          <div class="reg-name"><a href="http://www.bom.gov.au/waterdata/" target="_blank" rel="noopener"><code>bom</code></a><small>Bureau of Meteorology Water Data Online</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">Q · GW</div>
+          <div class="reg-status">Australia</div>
+        </div>
+        <div class="register-row" data-class="research" data-compartments="GW">
+          <div class="reg-name"><a href="https://un-igrac.org/our-work/activities/global-groundwater-monitoring-network-ggmn/" target="_blank" rel="noopener"><code>ggmn</code></a><small>Global Groundwater Monitoring Network</small></div>
+          <div><span class="badge research">Research</span></div>
+          <div class="reg-compartments">GW</div>
+          <div class="reg-status">Global</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="Q,GW,SW">
+          <div class="reg-name"><a href="https://water.europa.eu/freshwater" target="_blank" rel="noopener"><code>wise</code></a><small>Water Information System for Europe</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">Q · GW · SW</div>
+          <div class="reg-status">Europe</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="Q,P">
+          <div class="reg-name"><a href="https://www.snirh.gov.br/hidroweb/" target="_blank" rel="noopener"><code>hidroweb</code></a><small>HidroWeb / SNIRH, Brazil</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">Q · P</div>
+          <div class="reg-status">Brazil</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="Q">
+          <div class="reg-name"><a href="https://wateroffice.ec.gc.ca/" target="_blank" rel="noopener"><code>eccc</code></a><small>Water Survey of Canada Hydrometric Network</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">Q</div>
+          <div class="reg-status">Canada</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="Q,GW">
+          <div class="reg-name"><a href="https://hubeau.eaufrance.fr/" target="_blank" rel="noopener"><code>hubeau</code></a><small>Hub'Eau, France</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">Q · GW</div>
+          <div class="reg-status">France</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="Q">
+          <div class="reg-name"><a href="https://nrfa.ceh.ac.uk/" target="_blank" rel="noopener"><code>nrfa</code></a><small>National River Flow Archive, UK</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">Q</div>
+          <div class="reg-status">United Kingdom</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="SNOW,SM">
+          <div class="reg-name"><a href="https://www.nrcs.usda.gov/programs-initiatives/sswsf-snow-survey-and-water-supply-forecasting-program" target="_blank" rel="noopener"><code>snotel</code></a><small>SNOTEL / SCAN, Air and Water Database</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">SNOW · SM</div>
+          <div class="reg-status">United States (west + AK)</div>
+        </div>
+        <div class="register-row" data-class="agency" data-compartments="P">
+          <div class="reg-name"><a href="https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily" target="_blank" rel="noopener"><code>ghcnd</code></a><small>GHCN-Daily</small></div>
+          <div><span class="badge agency">Agency</span></div>
+          <div class="reg-compartments">P</div>
+          <div class="reg-status">Global</div>
+        </div>
+        <div class="register-row" data-class="citizen" data-compartments="P,SNOW">
+          <div class="reg-name"><a href="https://www.cocorahs.org/" target="_blank" rel="noopener"><code>cocorahs</code></a><small>Community Collaborative Rain, Hail &amp; Snow Network</small></div>
+          <div><span class="badge citizen">Citizen</span></div>
+          <div class="reg-compartments">P · SNOW</div>
+          <div class="reg-status">United States</div>
+        </div>
+        <div class="register-row" data-class="research" data-compartments="Q,P">
+          <div class="reg-name"><a href="http://www.hydrosciences.fr/sierem/" target="_blank" rel="noopener"><code>sierem</code></a><small>SIEREM, HydroSciences Montpellier</small></div>
+          <div><span class="badge research">Research</span></div>
+          <div class="reg-compartments">Q · P</div>
+          <div class="reg-status stub">West Africa + Mediterranean (stub)</div>
+        </div>
+      </div>
+      <p class="register-empty" id="register-empty" hidden>No sources match the current filters.</p>
+    </div>
+  </section>
+
+  <section id="coverage">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Coverage</h2>
+        <p>
+          Coverage is generated from each register's own declared coverage and
+          compartments, not live station counts. Where a real country or
+          continent shape is available it's clipped to the declared area; otherwise
+          a bounding box is shown. Filter by compartment or toggle
+          networks inside the map.
+        </p>
+      </div>
+      <iframe class="viz-frame viz-frame-coverage" src="assets/coverage-map.html" title="hydrostations network coverage map" loading="lazy"></iframe>
+      <p class="viz-caption">Snapshot generated by <code>examples/render_coverage_map.py</code>.</p>
+    </div>
+  </section>
+
+  <section class="on-paper" id="in-practice">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Crosswalk</h2>
+        <p>
+          <code>hydrostations</code> and the sibling package
+          <code>hydrocrosswalk</code> are decoupled, but together
+          they provide an interface to join a raw station pull with
+          a watershed or other admin unit.
+        </p>
+      </div>
+      <iframe class="viz-frame viz-frame-crosswalk" src="assets/crosswalk-map.html" title="Murray-Darling basin crosswalk example" loading="lazy"></iframe>
+      <p class="viz-caption">Snapshot generated by <code>hydrocrosswalk/examples/render_map.py</code>.</p>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Quickstart</h2>
+      </div>
+
+      <div class="quickstart-grid">
+        <div>
+          <p class="code-label">install</p>
+          <pre class="code">uv add hydrostations</pre>
+          <p class="code-label" style="margin-top: 20px;">fetch stations</p>
+          <pre class="code"><span class="tok-kw">from</span> hydrostations <span class="tok-kw">import</span> get_stations
+
+stations = get_stations(
+    basin=<span class="tok-str">"niger"</span>,
+    compartment=<span class="tok-str">"Q"</span>,
+)
+<span class="tok-com"># -&gt; GeoDataFrame: canonical_id, source, source_id,</span>
+<span class="tok-com">#    source_class, geometry, compartment, license, …</span></pre>
+        </div>
+        <div>
+          <p class="code-label">every record includes</p>
+          <ul class="compartment-list" style="grid-template-columns: 1fr;">
+            <li><b>raw</b> the untouched native record</li>
+            <li><b>retrieved_at</b> when this was actually fetched</li>
+            <li><b>redistribution_ok</b> whether you can re-publish it</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-row">
+        <a class="nav-mark" href="#top">hydrostations</a>
+        <ul class="footer-links">
+          <li><a href="https://github.com/rlrognstad/hydrostations">GitHub</a></li>
+          <li><a href="https://github.com/rlrognstad/hydrostations/blob/main/packages/hydrostations/README.md">Documentation</a></li>
+          <li><a href="https://github.com/rlrognstad/hydrostations/blob/main/LICENSE">MIT License</a></li>
+        </ul>
+      </div>
+      <p class="footer-fine">
+        Photo by <a href="https://unsplash.com/@jorgeluis?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Jorge Vasconez</a>
+        on <a href="https://unsplash.com/photos/blue-shallow-water-LCaKuYefLQk?utm_source=unsplash&amp;utm_medium=referral&amp;utm_content=creditCopyText">Unsplash</a>.
+        hydrostations is not affiliated with any of the agencies, institutions, or volunteer networks listed above.
+        Copyright by rlrognstad. Views are my own and do not reflect those of any employer; past, present, or future.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var table = document.getElementById('register-table');
+      var empty = document.getElementById('register-empty');
+      if (!table) return;
+
+      var rows = Array.prototype.slice.call(table.querySelectorAll('.register-row:not(.head)'));
+      var active = { compartment: new Set(), class: new Set() };
+
+      document.querySelectorAll('.filter-group').forEach(function (group) {
+        var kind = group.dataset.filterGroup;
+        group.querySelectorAll('.chip').forEach(function (chip) {
+          active[kind].add(chip.dataset.value);
+          chip.addEventListener('click', function () {
+            var value = chip.dataset.value;
+            if (active[kind].has(value)) {
+              active[kind].delete(value);
+              chip.classList.remove('active');
+            } else {
+              active[kind].add(value);
+              chip.classList.add('active');
+            }
+            applyFilters();
+          });
+        });
+      });
+
+      function applyFilters() {
+        var visibleCount = 0;
+        rows.forEach(function (row) {
+          var rowClass = row.dataset.class;
+          var rowCompartments = row.dataset.compartments.split(',');
+          var matches = active.class.has(rowClass) &&
+            rowCompartments.some(function (c) { return active.compartment.has(c); });
+          row.classList.toggle('filtered-out', !matches);
+          if (matches) visibleCount++;
+        });
+        if (empty) empty.hidden = visibleCount > 0;
+      }
+    })();
+  </script>
+</body>
+</html>
