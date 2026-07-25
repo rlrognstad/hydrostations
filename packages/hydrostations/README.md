@@ -22,8 +22,8 @@ Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
 real SNOW + SM sources), **CoCoRaHS** (US volunteer network, P + SNOW),
 **GHCN-Daily** (NOAA/NCEI, global precipitation), **GRDC** (Global Runoff
 Data Centre, global streamflow catalogue, first `redistribution_ok: false`
-source). Stubbed, not yet
-implemented: **SIEREM** (HydroSciences Montpellier) — its
+source), **ISMN** (International Soil Moisture Network, global SM + P +
+SNOW). Stubbed, not yet implemented: **SIEREM** (HydroSciences Montpellier) — its
 module docstring explains the access model as last investigated (no live
 REST API; ~647 static per-basin KML files, no server-side spatial
 filtering, needs a bulk-fetch-then-filter design rather than a simple
@@ -111,8 +111,8 @@ against pydantic models in `hydrostations.register`, and grouped by protocol und
 `hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features --
 shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
 Hub'Eau -- hand-written fetch logic, no second known user of any of these), and
-`hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily, GRDC -- sources
-with no server-side spatial filter, whether a static file snapshot, a live
+`hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily, GRDC, ISMN --
+sources with no server-side spatial filter, whether a static file snapshot, a live
 fetch-everything endpoint, or a live fetch-per-jurisdiction endpoint).
 
 `redistribution_ok` exists because not every source permits it -- GRDC is
