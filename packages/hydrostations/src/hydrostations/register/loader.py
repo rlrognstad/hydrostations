@@ -21,6 +21,7 @@ from hydrostations.adapters.bespoke.wise import WiseAdapter
 from hydrostations.adapters.bulk.cocorahs import CocorahsAdapter
 from hydrostations.adapters.bulk.ghcnd import GhcndAdapter
 from hydrostations.adapters.bulk.grdc import GrdcAdapter
+from hydrostations.adapters.bulk.ismn import IsmnAdapter
 from hydrostations.adapters.bulk.nrfa import NrfaAdapter
 from hydrostations.adapters.bulk.sierem import SieremAdapter
 from hydrostations.adapters.bulk.snotel import SnotelAdapter
@@ -50,6 +51,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "cocorahs_export": CocorahsAdapter,
     "ghcnd_bulk": GhcndAdapter,
     "grdc_ftp": GrdcAdapter,
+    "ismn_bulk": IsmnAdapter,
 }
 
 

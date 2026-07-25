@@ -1,0 +1,38 @@
+source_id: ismn
+name: International Soil Moisture Network
+operator: TU Wien / ISMN (multi-agency federated network)
+source_class: research
+protocol: ismn_bulk
+endpoint: https://ismn.earth/static/dataviewer/network_station_details.json
+license: >-
+  Unspecified for this metadata endpoint -- it backs ismn.earth's public
+  interactive data viewer (no login, no ToU click-through) rather than
+  being a documented, citable "download" product. Actual sensor
+  time-series still require free registration and ToU acceptance on
+  ismn.earth before download; only station-level metadata is reachable
+  here.
+redistribution_ok: false
+compartments: [SM, P, SNOW]
+coverage:
+  - [-180.0, -90.0, 180.0, 90.0]  # genuinely global, federation of national/research networks
+notes: >
+  The spec/roadmap doc's original assumption -- "no live catalogue
+  endpoint, offline-bulk against a user-downloaded archive only" -- is
+  outdated. Live investigation found ismn.earth's own interactive
+  data-viewer map (leaflet-based) is backed by a public, no-auth, JSON
+  endpoint that the page's own JS (ISMNDataViewer_map.js) fetches:
+  network_station_details.json, confirmed live with a same-day
+  `created_at` timestamp (refreshed at least daily). 89 networks, 3,335
+  stations confirmed live, lat/lng always present, per-station min/max
+  observation timestamps always present. Variable coverage (free-text
+  `variableText` per station) spans soil moisture (3,308 stations),
+  precipitation (773), snow depth (630), and snow water equivalent (492)
+  -- populating SM, P, and SNOW in one adapter, more than the roadmap
+  doc's "fills SM" framing expected. No elevation field in the JSON. This
+  is a fetch-everything-then-filter source like GHCN-Daily/NRFA (one
+  request, no query params at all) -- BulkFileAdapter, seventh live user.
+ismn:
+  variable_by_compartment:
+    SM: [soil moisture]
+    P: [precipitation]
+    SNOW: [snow depth, snow water equivalent]

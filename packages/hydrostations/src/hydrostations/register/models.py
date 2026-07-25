@@ -242,6 +242,19 @@ class GrdcEntry(SourceEntryBase):
     grdc: GrdcConfig
 
 
+class IsmnConfig(BaseModel):
+    # Which of the JSON's free-text native variable labels count toward
+    # each compartment -- config-driven, not hardcoded, same reasoning as
+    # GHCN's element_by_compartment. A station can match more than one
+    # compartment and gets one record per match.
+    variable_by_compartment: dict[str, list[str]]
+
+
+class IsmnEntry(SourceEntryBase):
+    protocol: Literal["ismn_bulk"]
+    ismn: IsmnConfig
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -255,7 +268,8 @@ SourceEntry = Annotated[
     | SnotelEntry
     | CocorahsEntry
     | GhcndEntry
-    | GrdcEntry,
+    | GrdcEntry
+    | IsmnEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)
