@@ -20,7 +20,9 @@ Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
 (ANA, Brazil), **ECCC** (Water Survey of Canada), **Hub'Eau** (France, Q+GW),
 **NRFA** (UK National River Flow Archive), **SNOTEL/SCAN** (USDA NRCS, first
 real SNOW + SM sources), **CoCoRaHS** (US volunteer network, P + SNOW),
-**GHCN-Daily** (NOAA/NCEI, global precipitation). Stubbed, not yet
+**GHCN-Daily** (NOAA/NCEI, global precipitation), **GRDC** (Global Runoff
+Data Centre, global streamflow catalogue, first `redistribution_ok: false`
+source). Stubbed, not yet
 implemented: **SIEREM** (HydroSciences Montpellier) — its
 module docstring explains the access model as last investigated (no live
 REST API; ~647 static per-basin KML files, no server-side spatial
@@ -94,8 +96,8 @@ Every adapter returns a GeoDataFrame with the same columns:
 | `geometry` | Point location (EPSG:4326) |
 | `compartment` | `Q` (streamflow) / `GW` (groundwater) / `P` (precipitation) / `SM` (soil moisture) / `ET` (evapotranspiration) / `SW` (surface water: lakes, reservoirs, coastal) / `SNOW` / `WQ` (water quality) |
 | `variables` | Native parameter code/type strings available at this station (not a canonical vocabulary yet) |
-| `elevation_m` | Populated by NRFA and SNOTEL/SCAN; null elsewhere |
-| `catchment_area_km2` | Populated by NRFA; null elsewhere |
+| `elevation_m` | Populated by NRFA, SNOTEL/SCAN, and GRDC (where not `-999`-sentinel missing); null elsewhere |
+| `catchment_area_km2` | Populated by NRFA and GRDC (where not `-999`-sentinel missing); null elsewhere |
 | `positional_uncertainty_m` / `reporting_interval` | Real fields, currently null for every adapter -- placeholders |
 | `first_obs` / `last_obs` | Period of record, where available |
 | `wsi` | WIGOS Station Identifier, where a crosswalk exists |
@@ -109,12 +111,14 @@ against pydantic models in `hydrostations.register`, and grouped by protocol und
 `hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features --
 shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
 Hub'Eau -- hand-written fetch logic, no second known user of any of these), and
-`hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily -- sources
+`hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily, GRDC -- sources
 with no server-side spatial filter, whether a static file snapshot, a live
 fetch-everything endpoint, or a live fetch-per-jurisdiction endpoint).
 
-`redistribution_ok` exists because not every source permits it (GRDC, once
-its adapter is built, will be the first `False` case) — code that consumes
+`redistribution_ok` exists because not every source permits it -- GRDC is
+the first `False` case, since its discharge series require a signed
+Declaration of the Data User and prohibit redistribution (only its station
+catalogue, fetched anonymously over FTP, is reachable here) — code that consumes
 `hydrostations` output should check this flag before caching or
 re-publishing raw records. It's a blunt boolean, though: GGMN's real license
 is CC BY-NC-SA 4.0 (non-commercial, share-alike), which doesn't fit a plain

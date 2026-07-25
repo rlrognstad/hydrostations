@@ -230,6 +230,18 @@ class GhcndEntry(SourceEntryBase):
     ghcnd: GhcndConfig
 
 
+class GrdcConfig(BaseModel):
+    # The zip's own internal filename -- kept configurable rather than
+    # hardcoded in case BfG ever renames it, same reasoning as GHCN's
+    # stations_path/inventory_path.
+    xlsx_member: str = "GRDC_Stations.xlsx"
+
+
+class GrdcEntry(SourceEntryBase):
+    protocol: Literal["grdc_ftp"]
+    grdc: GrdcConfig
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -242,7 +254,8 @@ SourceEntry = Annotated[
     | NrfaEntry
     | SnotelEntry
     | CocorahsEntry
-    | GhcndEntry,
+    | GhcndEntry
+    | GrdcEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)
