@@ -1,0 +1,35 @@
+source_id: grdc
+name: Global Runoff Data Centre
+operator: Bundesanstalt für Gewässerkunde (BfG), on behalf of WMO
+source_class: agency
+protocol: grdc_ftp
+endpoint: ftp://ftp.bafg.de/pub/REFERATE/GRDC/catalogue/grdc_stations.zip
+license: >-
+  GRDC Data Sharing Conditions -- catalogue reuse terms not separately
+  stated from the series' terms; discharge series require a signed
+  Declaration of the Data User and prohibit commercial use and
+  redistribution to third parties.
+redistribution_ok: false
+compartments: [Q]
+coverage:
+  - [-180.0, -90.0, 180.0, 90.0]  # genuinely global
+notes: >
+  Confirmed live: the station catalogue (GRDC_Stations.xlsx, zipped) is
+  served anonymously over FTP with no login and no Terms-of-Use
+  click-through -- a genuinely different, more open path than the
+  discharge-series web portal (portal.grdc.bafg.de), which requires
+  accepting the GRDC Data Sharing Conditions and emails a download link
+  within 24h. Only the catalogue is fetched here; series retrieval isn't
+  implemented in this library yet regardless of source. 11,416 real
+  stations confirmed in the 2025-07-24 snapshot, lat/long always present
+  (0 missing), spanning every WMO region. `area` (474 stations) and
+  `altitude` (4,158 stations) both use -999 as a documented missing-value
+  sentinel -- confirmed live via direct inspection, handled as null rather
+  than literal values, same pattern as GHCN-Daily's -999.9. `t_start`/
+  `t_end` (the combined daily+monthly record envelope, always populated,
+  unlike the `d_*`/`m_*` fields which are null for stations missing that
+  particular record type) are used for first_obs/last_obs -- year
+  precision only, same limitation as GHCN-Daily. First register entry with
+  `redistribution_ok: false`.
+grdc:
+  xlsx_member: GRDC_Stations.xlsx
