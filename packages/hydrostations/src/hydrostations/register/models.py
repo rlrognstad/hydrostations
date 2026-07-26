@@ -255,6 +255,13 @@ class IsmnEntry(SourceEntryBase):
     ismn: IsmnConfig
 
 
+class AmerifluxEntry(SourceEntryBase):
+    # No config block -- nothing protocol-specific to declare (single
+    # compartment, fixed sub-paths under `endpoint`), same reasoning as
+    # SieremEntry.
+    protocol: Literal["ameriflux_bulk"]
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -269,7 +276,8 @@ SourceEntry = Annotated[
     | CocorahsEntry
     | GhcndEntry
     | GrdcEntry
-    | IsmnEntry,
+    | IsmnEntry
+    | AmerifluxEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)
