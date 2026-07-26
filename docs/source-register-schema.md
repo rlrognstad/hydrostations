@@ -7,7 +7,7 @@ This documents the *input* schema — how a source is declared in
 
 One YAML file = one source. Every file is validated at load time against the
 pydantic models in `hydrostations.register.models`, discriminated by its
-`protocol` field into one of fourteen entry types. `protocol` picks both the
+`protocol` field into one of fifteen entry types. `protocol` picks both the
 adapter class that serves the source (`register/loader.py`'s
 `_ADAPTER_CLASSES`) and the shape of that entry's protocol-specific config
 block.
@@ -31,11 +31,11 @@ block.
 | `skip_out_of_coverage` | `bool` | no (`false`) | Opt-in: skip fetching entirely when the query bbox can't intersect `coverage`. Only NWIS sets this, to dodge its own bbox-size API limit — coverage boxes are coarse, so this isn't applied by default. |
 | `notes` | `str \| None` | no | Free text — real findings from live investigation belong here, not just aspirational docs. |
 
-## The fourteen entry types
+## The fifteen entry types
 
 Every entry type adds one `Literal["..."]` protocol tag and, except for
-`SieremEntry`, one nested config block carrying whatever that protocol
-actually needs. Grouped by adapter family (mirrors
+`SieremEntry` and `AmerifluxEntry`, one nested config block carrying
+whatever that protocol actually needs. Grouped by adapter family (mirrors
 `hydrostations/adapters/{protocols,bespoke,bulk}/`):
 
 ```mermaid
@@ -62,6 +62,7 @@ classDiagram
     SourceEntryBase <|-- GhcndEntry
     SourceEntryBase <|-- GrdcEntry
     SourceEntryBase <|-- IsmnEntry
+    SourceEntryBase <|-- AmerifluxEntry
 
     KiwisEntry --> KiwisConfig : kiwis
     WfsEntry --> WfsConfig : wfs
@@ -91,6 +92,7 @@ classDiagram
     class GhcndEntry { protocol: "ghcnd_bulk" }
     class GrdcEntry { protocol: "grdc_ftp" }
     class IsmnEntry { protocol: "ismn_bulk" }
+    class AmerifluxEntry { protocol: "ameriflux_bulk" }
 ```
 
 ### Protocol adapters (`adapters/protocols/`) — one class, many real agencies
@@ -168,6 +170,8 @@ params), filter client-side via `BulkFileAdapter._filter_by_bbox()`.
 **`GrdcEntry`** (`protocol: grdc_ftp`) — GRDC's station catalogue, served anonymously over FTP (not HTTP — the only adapter fetching this way; `endpoint` is an `ftp://` URL). Real user: **grdc**. First entry with `redistribution_ok: false` — the documented web portal for the discharge series themselves requires a signed Declaration of the Data User, but the catalogue is a genuinely separate, open path. `grdc.xlsx_member`: `str` (the zip's internal filename, defaults to `GRDC_Stations.xlsx`).
 
 **`IsmnEntry`** (`protocol: ismn_bulk`) — the public JSON backing ismn.earth's own interactive data-viewer map, not the documented registration-gated download portal (which is for the sensor series, not fetched by this library for any source yet). Real user: **ismn**. `ismn.variable_by_compartment`: `dict[compartment, list[str]]`, e.g. `{SM: [soil moisture], SNOW: [snow depth, snow water equivalent]}` — a station is included in a compartment if its free-text `variableText` matches any configured label, and can produce one record per matching compartment.
+
+**`AmerifluxEntry`** (`protocol: ameriflux_bulk`) — no config block (like `SieremEntry`, nothing protocol-specific to declare). Real user: **ameriflux**. First `ET` source; also the first adapter whose `license`/`redistribution_ok` vary per-record (a real CC BY 4.0 vs. "Legacy" data-policy split across its own site list) rather than copying the register entry's value onto every row.
 
 ## Worked example
 

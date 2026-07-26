@@ -1,0 +1,35 @@
+source_id: ameriflux
+name: AmeriFlux
+operator: Lawrence Berkeley National Laboratory (AmeriFlux Management Project)
+source_class: research
+protocol: ameriflux_bulk
+endpoint: https://amfcdn.lbl.gov/api/v1
+license: >-
+  Mixed per-site -- CC BY 4.0 for sites under the modern Data-Sharing
+  Policy, "Legacy" for sites still under the older policy that requires
+  contacting the site PI and following variable-level Data Use
+  restrictions before use. Determined per-record from the site's real
+  presence in the CCBY4.0 list, not assumed uniform across the source.
+redistribution_ok: false
+compartments: [ET]
+coverage:
+  - [-170.0, -56.0, -30.0, 72.0]  # the Americas
+notes: >
+  First register entry to populate ET (previously an entirely empty
+  compartment). Confirmed live via the amerifluxr R package's own source
+  (the documented public web pages have no visible API link, but
+  amerifluxr's helper_functions.R names the real backing service):
+  GET https://amfcdn.lbl.gov/api/v1/site_display/AmeriFlux (site list, no
+  auth) and .../site_availability/AmeriFlux/BIF/CCBY4.0 (which of those
+  sites are under the open CC BY 4.0 policy vs the older "Legacy" policy).
+  837 real sites confirmed live (roadmap doc estimated ~480 -- a real,
+  large undercount), spanning the Americas (USA 677, Canada 92, Brazil 23,
+  Mexico 16, plus Argentina/Peru/Chile/Costa Rica/Colombia/Panama/Puerto
+  Rico), lat/lon always present, elevation missing for 35 sites (left
+  null, no sentinel value observed). 668 of 837 sites are CC BY 4.0;
+  license/redistribution_ok are set per-record from this split rather than
+  copied uniformly from the register entry, a first for this register
+  (every other adapter currently copies the entry's license unchanged onto
+  every record). Actual flux data (the BASE/BADM products this doesn't
+  fetch) still requires an AmeriFlux account regardless of site policy;
+  only the site list/metadata is reachable anonymously.
