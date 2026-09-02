@@ -28,18 +28,17 @@ SNOW), **AmeriFlux** (Americas, first `ET` source, first per-record
 `license`/`redistribution_ok`), **Water Quality Portal** (USGS/EPA/NWQMC
 joint aggregator, US, first `WQ` source — the last compartment that had
 no source), **PSMSL** (Permanent Service for Mean Sea Level, global
-coastal tide gauges — first global `SW` source). Stubbed, not yet implemented: **SIEREM** (HydroSciences Montpellier) — its
-module docstring explains the access model as last investigated (no live
-REST API; ~647 static per-basin KML files, no server-side spatial
-filtering, needs a bulk-fetch-then-filter design rather than a simple
-per-query adapter).
+coastal tide gauges — first global `SW` source), **SIEREM** (HydroSciences
+Montpellier — first African source: Q + P from ~276 static per-basin KML
+files, `live: false`). Every registered source now has a working adapter.
 
-Worth knowing: GGMN, WISE, and HidroWeb were *all* stubbed as "blocked" in
-the original design doc, and live investigation found each assumption
-outdated -- GGMN's MOU only governs data contributors, WISE has a real
-queryable SQL API, and HidroWeb's station inventory (as opposed to its
-time-series download) needs no auth at all. Re-check a stub's real access
-model before trusting its docstring's blocker as current.
+Worth knowing: GGMN, WISE, HidroWeb, and SIEREM were *all* stubbed as
+"blocked" in the original design doc, and live investigation found each
+assumption outdated -- GGMN's MOU only governs data contributors, WISE has
+a real queryable SQL API, HidroWeb's station inventory (as opposed to its
+time-series download) needs no auth at all, and SIEREM's Google-Earth
+layer is a machine-readable KML tree. Re-check a "blocked" source's real
+access model before trusting an old note as current.
 
 `hydrostations.lookup_coverage(polygon)` answers "which networks and
 compartments are declared to cover this area" using each adapter's own
