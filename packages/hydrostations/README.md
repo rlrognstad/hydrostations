@@ -20,7 +20,7 @@ SW), **BoM** (Australia),
 **GGMN** (IGRAC, global groundwater), **WISE** (EEA, Europe), **HidroWeb**
 (ANA, Brazil), **ECCC** (Water Survey of Canada), **Hub'Eau** (France, Q+GW),
 **NRFA** (UK National River Flow Archive), **SNOTEL/SCAN** (USDA NRCS, first
-real SNOW + SM sources), **CoCoRaHS** (US volunteer network, P + SNOW),
+real SNOW + SM sources), **CoCoRaHS** (US + PR/USVI/Guam volunteer network, P + SNOW),
 **GHCN-Daily** (NOAA/NCEI, global precipitation), **GRDC** (Global Runoff
 Data Centre, global streamflow catalogue, first `redistribution_ok: false`
 source), **ISMN** (International Soil Moisture Network, global SM + P +
