@@ -15,6 +15,7 @@ import yaml
 from pydantic import ValidationError
 
 from hydrostations.adapters.base import SourceAdapter
+from hydrostations.adapters.bespoke.globe import GlobeAdapter
 from hydrostations.adapters.bespoke.hubeau import HubeauAdapter
 from hydrostations.adapters.bespoke.nwis import NwisAdapter
 from hydrostations.adapters.bespoke.wise import WiseAdapter
@@ -60,6 +61,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "ameriflux_bulk": AmerifluxAdapter,
     "wqp_station": WqpAdapter,
     "psmsl_filelist": PsmslAdapter,
+    "globe_api": GlobeAdapter,
 }
 
 

@@ -1,0 +1,60 @@
+source_id: globe
+name: GLOBE Program
+operator: >-
+  The GLOBE Program (sponsored by NASA, NOAA, NSF and the U.S. Department
+  of State; community support by UCAR)
+source_class: citizen
+protocol: globe_api
+endpoint: https://api.globe.gov/search/v1
+license: >-
+  Public -- "all data collected using GLOBE protocols and entered into the
+  GLOBE database are freely available to the public" (globe.gov data
+  policy). No API key, no click-through; attribution to The GLOBE Program
+  requested.
+redistribution_ok: true
+compartments: [WQ, SM, SNOW]
+coverage:
+  - [-180.0, -90.0, 180.0, 90.0]  # ~125 countries; genuinely global
+notes: >
+  Second `citizen` source after CoCoRaHS, and the first with citizen-class
+  water quality -- a compartment otherwise held only by WQP (US). GLOBE
+  has no station endpoint, only a measurement search API
+  (api.globe.gov/search/v1); "stations" here are measurements aggregated
+  to their `siteId`, with first_obs/last_obs = the min/max measuredDate
+  seen and `variables` = the GLOBE protocol names observed there.
+
+  Two real constraints, confirmed live: (1) the backend is Elasticsearch
+  with the default 10,000-row max_result_window -- paging past ~10k
+  returns "all shards failed" -- so the adapter walks the date range with
+  adaptive halving (split any window whose `count` hits the cap, down to
+  single days). (2) With no station endpoint a global fetch is inherently
+  heavy: this is the slowest source in the register (minutes for a broad
+  query). A `bbox` query uses the API's `/lat/lon/` endpoint (real
+  server-side spatial filter) and is far lighter.
+
+  `globe.start_date` (default 2019-01-01) bounds how far back to look and
+  floors first_obs; sites with no observation since then are omitted --
+  so this reflects roughly-currently-active sites, not GLOBE's full
+  historical roster back to 1995. Measurement volume (2024): all mapped
+  WQ protocols ~75k/yr, snowpacks ~11k/yr, SMAP soil moisture ~1.7k/yr.
+  `precipitations` (~80k/yr) is deliberately left unmapped -- add it to a
+  `P` key in `protocols_by_compartment` to include it.
+globe:
+  start_date: "2019-01-01"
+  page_size: 5000
+  protocols_by_compartment:
+    WQ:
+      - water_temperatures
+      - dissolved_oxygens
+      - conductivities
+      - nitrates
+      - salinities
+      - transparencies
+      - hydrology_alkalinities
+      - hydrology_phs
+    SM:
+      - soil_moisture_for_smap
+      - soil_moisture_via_gravimetrics
+      - volumetric_soil_moisture_monthlies
+    SNOW:
+      - snowpacks

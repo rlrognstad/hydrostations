@@ -7,7 +7,7 @@ This documents the *input* schema — how a source is declared in
 
 One YAML file = one source. Every file is validated at load time against the
 pydantic models in `hydrostations.register.models`, discriminated by its
-`protocol` field into one of eighteen entry types. `protocol` picks both the
+`protocol` field into one of nineteen entry types. `protocol` picks both the
 adapter class that serves the source (`register/loader.py`'s
 `_ADAPTER_CLASSES`) and the shape of that entry's protocol-specific config
 block.
@@ -31,7 +31,7 @@ block.
 | `skip_out_of_coverage` | `bool` | no (`false`) | Opt-in: skip fetching entirely when the query bbox can't intersect `coverage`. Only NWIS sets this, to dodge its own bbox-size API limit — coverage boxes are coarse, so this isn't applied by default. |
 | `notes` | `str \| None` | no | Free text — real findings from live investigation belong here, not just aspirational docs. |
 
-## The eighteen entry types
+## The nineteen entry types
 
 Every entry type adds one `Literal["..."]` protocol tag and, except for
 `AmerifluxEntry` and `WqpEntry`, one nested config block carrying whatever
@@ -54,6 +54,7 @@ classDiagram
     SourceEntryBase <|-- ArcGisEntry
     SourceEntryBase <|-- OgcFeaturesEntry
     SourceEntryBase <|-- SocrataEntry
+    SourceEntryBase <|-- GlobeEntry
     SourceEntryBase <|-- NwisEntry
     SourceEntryBase <|-- WiseEntry
     SourceEntryBase <|-- HubeauEntry
@@ -73,6 +74,7 @@ classDiagram
     ArcGisEntry --> ArcGisConfig : arcgis
     OgcFeaturesEntry --> OgcFeaturesConfig : ogc_features
     SocrataEntry --> SocrataConfig : socrata
+    GlobeEntry --> GlobeConfig : globe
     NwisEntry --> NwisConfig : nwis
     WiseEntry --> WiseConfig : wise
     HubeauEntry --> HubeauConfig : hubeau
@@ -89,6 +91,7 @@ classDiagram
     class ArcGisEntry { protocol: "arcgis_feature_server" }
     class OgcFeaturesEntry { protocol: "ogc_features" }
     class SocrataEntry { protocol: "socrata" }
+    class GlobeEntry { protocol: "globe_api" }
     class NwisEntry { protocol: "nwis_rdb" }
     class WiseEntry { protocol: "wise_discodata" }
     class HubeauEntry { protocol: "hubeau" }
@@ -172,6 +175,8 @@ water-surface-elevation family plus storage.
 `hubeau.page_size` (`int`, `1000`), `hubeau.compartments`: `dict[compartment, HubeauCompartmentConfig]` —
 `{path, id_field, name_field, lon_field, lat_field, first_obs_field, last_obs_field}`, since Q and GW are
 genuinely different sub-APIs under one platform.
+
+**`GlobeEntry`** (`protocol: globe_api`) — the GLOBE Program's citizen-science measurement search API (`api.globe.gov/search/v1`). Real user: **globe**. No station endpoint: "stations" are measurements aggregated to their `siteId`. `globe.protocols_by_compartment` (`dict[compartment, list[str]]`) maps GLOBE protocol API-names to compartments; `globe.start_date` (`str`, `2019-01-01`) bounds how far back to look and floors `first_obs`; `globe.page_size` (`int`, `5000`). The backend is Elasticsearch with a 10,000-row window, so the adapter walks the date range with adaptive halving — a global (no-`bbox`) fetch is the slowest source in the register; a `bbox` query uses the API's `/lat/lon/` endpoint and is light.
 
 **`WqpEntry`** (`protocol: wqp_station`) — USGS/EPA/NWQMC Water Quality Portal Station search (CSV over HTTP). Real user: **wqp**. No config block (like `AmerifluxEntry`): one compartment (`WQ`), one endpoint, no per-compartment split. First `WQ` source — the last compartment in `COMPARTMENTS` that had no source. Bespoke, not bulk, because it has a real server-side `bBox` filter; but it has no pagination and no bbox-size cap, and a call with no bbox fans out to one request per declared coverage box (the service rejects an unfiltered query). `elevation_m` is filled from `VerticalMeasure` (feet converted to metres); `skip_out_of_coverage: true`, as for NWIS.
 
