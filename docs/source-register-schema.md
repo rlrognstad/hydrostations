@@ -34,8 +34,9 @@ block.
 ## The seventeen entry types
 
 Every entry type adds one `Literal["..."]` protocol tag and, except for
-`SieremEntry`, `AmerifluxEntry`, and `WqpEntry`, one nested config block
-carrying whatever that protocol actually needs. Grouped by adapter family (mirrors
+`AmerifluxEntry` and `WqpEntry`, one nested config block carrying whatever
+that protocol actually needs (`SieremEntry`'s and `PsmslEntry`'s blocks
+are fully defaulted, so optional in YAML). Grouped by adapter family (mirrors
 `hydrostations/adapters/{protocols,bespoke,bulk}/`):
 
 ```mermaid
@@ -156,14 +157,14 @@ water-surface-elevation family plus storage.
 `{path, id_field, name_field, lon_field, lat_field, first_obs_field, last_obs_field}`, since Q and GW are
 genuinely different sub-APIs under one platform.
 
-**`WqpEntry`** (`protocol: wqp_station`) — USGS/EPA/NWQMC Water Quality Portal Station search (CSV over HTTP). Real user: **wqp**. No config block (like `SieremEntry`/`AmerifluxEntry`): one compartment (`WQ`), one endpoint, no per-compartment split. First `WQ` source — the last compartment in `COMPARTMENTS` that had no source. Bespoke, not bulk, because it has a real server-side `bBox` filter; but it has no pagination and no bbox-size cap, and a call with no bbox fans out to one request per declared coverage box (the service rejects an unfiltered query). `elevation_m` is filled from `VerticalMeasure` (feet converted to metres); `skip_out_of_coverage: true`, as for NWIS.
+**`WqpEntry`** (`protocol: wqp_station`) — USGS/EPA/NWQMC Water Quality Portal Station search (CSV over HTTP). Real user: **wqp**. No config block (like `AmerifluxEntry`): one compartment (`WQ`), one endpoint, no per-compartment split. First `WQ` source — the last compartment in `COMPARTMENTS` that had no source. Bespoke, not bulk, because it has a real server-side `bBox` filter; but it has no pagination and no bbox-size cap, and a call with no bbox fans out to one request per declared coverage box (the service rejects an unfiltered query). `elevation_m` is filled from `VerticalMeasure` (feet converted to metres); `skip_out_of_coverage: true`, as for NWIS.
 
 ### Bulk adapters (`adapters/bulk/`) — no server-side spatial filter
 
 Fetch everything (a static file, or a live endpoint that ignores spatial
 params), filter client-side via `BulkFileAdapter._filter_by_bbox()`.
 
-**`SieremEntry`** (`protocol: bulk_kml`) — static per-basin KML files. Real user: **sierem** (stub — not yet implemented). No config block; `live` defaults to `false` here specifically, since it's a genuine dated snapshot, not a live-but-unfiltered endpoint.
+**`SieremEntry`** (`protocol: bulk_kml`) — SIEREM's static KML tree: a master index (`SieremGoogleBassin.kml`) of `<NetworkLink>` hrefs to per-basin, per-station-type placemark files. Real user: **sierem** (first African source). `sierem.index_kml` (`str`) and `sierem.type_by_compartment` (`dict[compartment, list[str]]` of filename type tokens, defaults to `{Q: [HYDRO], P: [PLUVI, PLGRA]}`) — the whole block is optional since both are defaulted. `live` defaults to `false` here specifically: a genuine dated snapshot, not a live-but-unfiltered endpoint.
 
 **`NrfaEntry`** (`protocol: nrfa_ws`) — UK NRFA, live but `station=*` always returns everything. Real user: **nrfa**.
 `nrfa.id_field` / `name_field` / `lon_field` / `lat_field` (defaulted), `nrfa.fields`: `list[str]` (requested response fields).
@@ -181,7 +182,7 @@ params), filter client-side via `BulkFileAdapter._filter_by_bbox()`.
 
 **`IsmnEntry`** (`protocol: ismn_bulk`) — the public JSON backing ismn.earth's own interactive data-viewer map, not the documented registration-gated download portal (which is for the sensor series, not fetched by this library for any source yet). Real user: **ismn**. `ismn.variable_by_compartment`: `dict[compartment, list[str]]`, e.g. `{SM: [soil moisture], SNOW: [snow depth, snow water equivalent]}` — a station is included in a compartment if its free-text `variableText` matches any configured label, and can produce one record per matching compartment.
 
-**`AmerifluxEntry`** (`protocol: ameriflux_bulk`) — no config block (like `SieremEntry`, nothing protocol-specific to declare). Real user: **ameriflux**. First `ET` source; also the first adapter whose `license`/`redistribution_ok` vary per-record (a real CC BY 4.0 vs. "Legacy" data-policy split across its own site list) rather than copying the register entry's value onto every row.
+**`AmerifluxEntry`** (`protocol: ameriflux_bulk`) — no config block (nothing protocol-specific to declare). Real user: **ameriflux**. First `ET` source; also the first adapter whose `license`/`redistribution_ok` vary per-record (a real CC BY 4.0 vs. "Legacy" data-policy split across its own site list) rather than copying the register entry's value onto every row.
 
 **`PsmslEntry`** (`protocol: psmsl_filelist`) — the Permanent Service for Mean Sea Level's per-dataset `filelist.txt` (semicolon-separated station list, anonymous HTTP). Real user: **psmsl**. `psmsl.filelist_path`: `str`, defaults to `met.monthly.data/filelist.txt` (PSMSL's full Metric holdings); set it to `rlr.monthly.data/filelist.txt` for the QC'd RLR subset. The whole block is optional since every field is defaulted. First global `SW` source (coastal tide gauges) — distinct from NWIS's inland-lake/reservoir `SW`.
 

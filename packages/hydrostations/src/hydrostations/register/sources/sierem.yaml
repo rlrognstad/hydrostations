@@ -1,18 +1,51 @@
 source_id: sierem
 name: SIEREM
-operator: HydroSciences Montpellier
+operator: HydroSciences Montpellier (HSM), UMR 5569 (IRD / CNRS / Univ. Montpellier)
 source_class: research
 protocol: bulk_kml
-endpoint: http://www.hydrosciences.fr/sierem/
-license: "Open, citation required (SIEREM / HydroSciences Montpellier)"
+endpoint: http://www.hydrosciences.fr/sierem
+license: >-
+  Open, citation required -- SIEREM / HydroSciences Montpellier; the
+  compilation aggregates records from many African national services and
+  historical archives (ORSTOM/IRD), acknowledge SIEREM and the original
+  data producers.
 redistribution_ok: true
 compartments: [Q, P]
 coverage:
-  - [-18.0, -5.0, 25.0, 25.0]    # West/Central Africa
-  - [-10.0, 30.0, 40.0, 45.0]    # Mediterranean rim
+  - [-20.0, -37.0, 52.0, 40.0]  # continental Africa + Madagascar + the Maghreb/Mediterranean rim
 live: false
 notes: >
-  Static portal, no queryable API -- ~647 real per-basin/per-type KML files
-  with individual station placemarks (confirmed live), no server-side
-  spatial filter. Not yet implemented: needs a bulk-fetch-then-filter
-  design, not a simple per-query adapter.
+  Static portal, no queryable API -- but the Google-Earth layer is a
+  genuinely machine-readable KML tree, confirmed live. `SieremGoogleBassin.kml`
+  is the master index: 647 <NetworkLink> hrefs, of which ~165 are
+  basin-outline polygons (`<BASIN>B.kml`, skipped) and the rest are
+  per-drainage-basin, per-station-type station files
+  (`kmz_files/<BASIN><TYPE>.kml`). Confirmed live: 125 HYDRO files, 123
+  PLUVI, 28 PLGRA, plus 96 SYNOP / 41 CLIMA / 35 METEO / 31 AGRO(B) / 3
+  CATCH not currently mapped.
+
+  Each station file holds the actual <Placemark>s: <name>,
+  <Point><coordinates>, and a CDATA HTML block with `<b>{id} - {NAME}</b>`,
+  the country, `Altitude : {n|null} m` (null is common -- 24 of 35 in one
+  basin, handled as null elevation), and, for ~50% of HYDRO and ~100% of
+  PLUVI stations, inline series date ranges (`... du D-M-YYYY au
+  D-M-YYYY ...`) -- parsed to first_obs/last_obs (earliest start, latest
+  end), left null when absent. Station ids are 6+ digit numeric, unique
+  within a file; deduplicated across files per compartment.
+
+  Files are iso-8859-1, decoded explicitly. No server-side spatial filter
+  -- the whole tree is fetched then filtered client-side
+  (BulkFileAdapter), same archetype as GHCN-Daily/GRDC/PSMSL. `live: false`
+  because SIEREM is a genuine dated snapshot. Performance: a Q+P query
+  fetches ~276 KML files over one keep-alive client -- tens of seconds,
+  the slowest source alongside CoCoRaHS; a file that fails to fetch or
+  parse is skipped rather than aborting the call.
+
+  First implemented African source (previously a stub since the initial
+  scaffold). SYNOP/CLIMA/METEO stations also record rainfall and could be
+  folded into P via `sierem.type_by_compartment` with no code change.
+sierem:
+  index_kml: SieremGoogleBassin.kml
+  type_by_compartment:
+    Q: [HYDRO]
+    P: [PLUVI, PLGRA]

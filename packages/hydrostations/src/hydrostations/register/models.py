@@ -178,9 +178,27 @@ class WiseEntry(SourceEntryBase):
     wise: WiseConfig
 
 
+class SieremConfig(BaseModel):
+    # The master index KML: every per-basin/per-station-type station file
+    # listed as a <NetworkLink> href. SieremGoogleBassin.kml (by drainage
+    # basin) is the complete one.
+    index_kml: str = "SieremGoogleBassin.kml"
+    # Which filename type-suffix tokens feed each compartment -- SIEREM
+    # names its station files <BASIN><TYPE>.kml (HYDRO, PLUVI, PLGRA,
+    # SYNOP, CLIMA, METEO, AGRO, AGROB, CATCH). Only the unambiguous types
+    # are mapped by default; SYNOP/CLIMA/METEO stations also record
+    # rainfall and could be folded into P here without a code change,
+    # same reasoning as GHCN's element_by_compartment.
+    type_by_compartment: dict[str, list[str]] = Field(
+        default_factory=lambda: {"Q": ["HYDRO"], "P": ["PLUVI", "PLGRA"]}
+    )
+
+
 class SieremEntry(SourceEntryBase):
     protocol: Literal["bulk_kml"]
     live: bool = False
+    # Every SieremConfig field is defaulted, so the block is optional in YAML.
+    sierem: SieremConfig = Field(default_factory=SieremConfig)
 
 
 class NrfaConfig(BaseModel):
@@ -256,9 +274,8 @@ class IsmnEntry(SourceEntryBase):
 
 
 class AmerifluxEntry(SourceEntryBase):
-    # No config block -- nothing protocol-specific to declare (single
-    # compartment, fixed sub-paths under `endpoint`), same reasoning as
-    # SieremEntry.
+    # No config block -- nothing protocol-specific to declare: a single
+    # compartment and fixed sub-paths under `endpoint`.
     protocol: Literal["ameriflux_bulk"]
 
 
