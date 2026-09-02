@@ -262,6 +262,13 @@ class AmerifluxEntry(SourceEntryBase):
     protocol: Literal["ameriflux_bulk"]
 
 
+class WqpEntry(SourceEntryBase):
+    # No config block -- one compartment (WQ), one Station-search endpoint,
+    # no per-compartment split, same reasoning as AmerifluxEntry. Bespoke
+    # rather than bulk: WQP has a real server-side bBox filter.
+    protocol: Literal["wqp_station"]
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -277,7 +284,8 @@ SourceEntry = Annotated[
     | GhcndEntry
     | GrdcEntry
     | IsmnEntry
-    | AmerifluxEntry,
+    | AmerifluxEntry
+    | WqpEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)

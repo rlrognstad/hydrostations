@@ -7,7 +7,7 @@ This documents the *input* schema — how a source is declared in
 
 One YAML file = one source. Every file is validated at load time against the
 pydantic models in `hydrostations.register.models`, discriminated by its
-`protocol` field into one of fifteen entry types. `protocol` picks both the
+`protocol` field into one of sixteen entry types. `protocol` picks both the
 adapter class that serves the source (`register/loader.py`'s
 `_ADAPTER_CLASSES`) and the shape of that entry's protocol-specific config
 block.
@@ -31,11 +31,11 @@ block.
 | `skip_out_of_coverage` | `bool` | no (`false`) | Opt-in: skip fetching entirely when the query bbox can't intersect `coverage`. Only NWIS sets this, to dodge its own bbox-size API limit — coverage boxes are coarse, so this isn't applied by default. |
 | `notes` | `str \| None` | no | Free text — real findings from live investigation belong here, not just aspirational docs. |
 
-## The fifteen entry types
+## The sixteen entry types
 
 Every entry type adds one `Literal["..."]` protocol tag and, except for
-`SieremEntry` and `AmerifluxEntry`, one nested config block carrying
-whatever that protocol actually needs. Grouped by adapter family (mirrors
+`SieremEntry`, `AmerifluxEntry`, and `WqpEntry`, one nested config block
+carrying whatever that protocol actually needs. Grouped by adapter family (mirrors
 `hydrostations/adapters/{protocols,bespoke,bulk}/`):
 
 ```mermaid
@@ -63,6 +63,7 @@ classDiagram
     SourceEntryBase <|-- GrdcEntry
     SourceEntryBase <|-- IsmnEntry
     SourceEntryBase <|-- AmerifluxEntry
+    SourceEntryBase <|-- WqpEntry
 
     KiwisEntry --> KiwisConfig : kiwis
     WfsEntry --> WfsConfig : wfs
@@ -93,6 +94,7 @@ classDiagram
     class GrdcEntry { protocol: "grdc_ftp" }
     class IsmnEntry { protocol: "ismn_bulk" }
     class AmerifluxEntry { protocol: "ameriflux_bulk" }
+    class WqpEntry { protocol: "wqp_station" }
 ```
 
 ### Protocol adapters (`adapters/protocols/`) — one class, many real agencies
@@ -147,6 +149,8 @@ the same standard is a new YAML file, never a new Python class.
 `hubeau.page_size` (`int`, `1000`), `hubeau.compartments`: `dict[compartment, HubeauCompartmentConfig]` —
 `{path, id_field, name_field, lon_field, lat_field, first_obs_field, last_obs_field}`, since Q and GW are
 genuinely different sub-APIs under one platform.
+
+**`WqpEntry`** (`protocol: wqp_station`) — USGS/EPA/NWQMC Water Quality Portal Station search (CSV over HTTP). Real user: **wqp**. No config block (like `SieremEntry`/`AmerifluxEntry`): one compartment (`WQ`), one endpoint, no per-compartment split. First `WQ` source — the last compartment in `COMPARTMENTS` that had no source. Bespoke, not bulk, because it has a real server-side `bBox` filter; but it has no pagination and no bbox-size cap, and a call with no bbox fans out to one request per declared coverage box (the service rejects an unfiltered query). `elevation_m` is filled from `VerticalMeasure` (feet converted to metres); `skip_out_of_coverage: true`, as for NWIS.
 
 ### Bulk adapters (`adapters/bulk/`) — no server-side spatial filter
 

@@ -18,6 +18,7 @@ from hydrostations.adapters.base import SourceAdapter
 from hydrostations.adapters.bespoke.hubeau import HubeauAdapter
 from hydrostations.adapters.bespoke.nwis import NwisAdapter
 from hydrostations.adapters.bespoke.wise import WiseAdapter
+from hydrostations.adapters.bespoke.wqp import WqpAdapter
 from hydrostations.adapters.bulk.ameriflux import AmerifluxAdapter
 from hydrostations.adapters.bulk.cocorahs import CocorahsAdapter
 from hydrostations.adapters.bulk.ghcnd import GhcndAdapter
@@ -54,6 +55,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "grdc_ftp": GrdcAdapter,
     "ismn_bulk": IsmnAdapter,
     "ameriflux_bulk": AmerifluxAdapter,
+    "wqp_station": WqpAdapter,
 }
 
 
