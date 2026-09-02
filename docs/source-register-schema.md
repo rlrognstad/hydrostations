@@ -7,7 +7,7 @@ This documents the *input* schema — how a source is declared in
 
 One YAML file = one source. Every file is validated at load time against the
 pydantic models in `hydrostations.register.models`, discriminated by its
-`protocol` field into one of sixteen entry types. `protocol` picks both the
+`protocol` field into one of seventeen entry types. `protocol` picks both the
 adapter class that serves the source (`register/loader.py`'s
 `_ADAPTER_CLASSES`) and the shape of that entry's protocol-specific config
 block.
@@ -31,7 +31,7 @@ block.
 | `skip_out_of_coverage` | `bool` | no (`false`) | Opt-in: skip fetching entirely when the query bbox can't intersect `coverage`. Only NWIS sets this, to dodge its own bbox-size API limit — coverage boxes are coarse, so this isn't applied by default. |
 | `notes` | `str \| None` | no | Free text — real findings from live investigation belong here, not just aspirational docs. |
 
-## The sixteen entry types
+## The seventeen entry types
 
 Every entry type adds one `Literal["..."]` protocol tag and, except for
 `SieremEntry`, `AmerifluxEntry`, and `WqpEntry`, one nested config block
@@ -64,6 +64,7 @@ classDiagram
     SourceEntryBase <|-- IsmnEntry
     SourceEntryBase <|-- AmerifluxEntry
     SourceEntryBase <|-- WqpEntry
+    SourceEntryBase <|-- PsmslEntry
 
     KiwisEntry --> KiwisConfig : kiwis
     WfsEntry --> WfsConfig : wfs
@@ -78,6 +79,7 @@ classDiagram
     GhcndEntry --> GhcndConfig : ghcnd
     GrdcEntry --> GrdcConfig : grdc
     IsmnEntry --> IsmnConfig : ismn
+    PsmslEntry --> PsmslConfig : psmsl
 
     class KiwisEntry { protocol: "kiwis" }
     class WfsEntry { protocol: "wfs" }
@@ -95,6 +97,7 @@ classDiagram
     class IsmnEntry { protocol: "ismn_bulk" }
     class AmerifluxEntry { protocol: "ameriflux_bulk" }
     class WqpEntry { protocol: "wqp_station" }
+    class PsmslEntry { protocol: "psmsl_filelist" }
 ```
 
 ### Protocol adapters (`adapters/protocols/`) — one class, many real agencies
@@ -179,6 +182,8 @@ params), filter client-side via `BulkFileAdapter._filter_by_bbox()`.
 **`IsmnEntry`** (`protocol: ismn_bulk`) — the public JSON backing ismn.earth's own interactive data-viewer map, not the documented registration-gated download portal (which is for the sensor series, not fetched by this library for any source yet). Real user: **ismn**. `ismn.variable_by_compartment`: `dict[compartment, list[str]]`, e.g. `{SM: [soil moisture], SNOW: [snow depth, snow water equivalent]}` — a station is included in a compartment if its free-text `variableText` matches any configured label, and can produce one record per matching compartment.
 
 **`AmerifluxEntry`** (`protocol: ameriflux_bulk`) — no config block (like `SieremEntry`, nothing protocol-specific to declare). Real user: **ameriflux**. First `ET` source; also the first adapter whose `license`/`redistribution_ok` vary per-record (a real CC BY 4.0 vs. "Legacy" data-policy split across its own site list) rather than copying the register entry's value onto every row.
+
+**`PsmslEntry`** (`protocol: psmsl_filelist`) — the Permanent Service for Mean Sea Level's per-dataset `filelist.txt` (semicolon-separated station list, anonymous HTTP). Real user: **psmsl**. `psmsl.filelist_path`: `str`, defaults to `met.monthly.data/filelist.txt` (PSMSL's full Metric holdings); set it to `rlr.monthly.data/filelist.txt` for the QC'd RLR subset. The whole block is optional since every field is defaulted. First global `SW` source (coastal tide gauges) — distinct from NWIS's inland-lake/reservoir `SW`.
 
 ## Worked example
 

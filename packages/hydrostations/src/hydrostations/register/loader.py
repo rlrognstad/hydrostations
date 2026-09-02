@@ -25,6 +25,7 @@ from hydrostations.adapters.bulk.ghcnd import GhcndAdapter
 from hydrostations.adapters.bulk.grdc import GrdcAdapter
 from hydrostations.adapters.bulk.ismn import IsmnAdapter
 from hydrostations.adapters.bulk.nrfa import NrfaAdapter
+from hydrostations.adapters.bulk.psmsl import PsmslAdapter
 from hydrostations.adapters.bulk.sierem import SieremAdapter
 from hydrostations.adapters.bulk.snotel import SnotelAdapter
 from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
@@ -56,6 +57,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "ismn_bulk": IsmnAdapter,
     "ameriflux_bulk": AmerifluxAdapter,
     "wqp_station": WqpAdapter,
+    "psmsl_filelist": PsmslAdapter,
 }
 
 

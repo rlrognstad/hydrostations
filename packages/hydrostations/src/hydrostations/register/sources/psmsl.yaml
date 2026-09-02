@@ -1,0 +1,52 @@
+source_id: psmsl
+name: Permanent Service for Mean Sea Level
+operator: National Oceanography Centre (NOC), Liverpool, UK
+# PSMSL is the global data bank for long-term sea-level change -- an
+# international research compilation of records supplied by national
+# authorities and research groups, hosted by NOC under ICSU/IUGG, not
+# itself an operational network. Same "research compilation" class as
+# GGMN/ISMN rather than a single agency's own feed.
+source_class: research
+protocol: psmsl_filelist
+endpoint: https://psmsl.org/data/obtaining
+license: >-
+  Freely available, no click-through licence and no commercial or
+  redistribution restriction stated; citation requested -- PSMSL asks
+  users to reference both the describing paper (Holgate et al., 2013,
+  "New Data Systems and Products at the Permanent Service for Mean Sea
+  Level", J. Coastal Res., 29(3), 493-504) and the dataset itself
+  ("Permanent Service for Mean Sea Level (PSMSL), retrieved from
+  psmsl.org").
+redistribution_ok: true
+compartments: [SW]
+coverage:
+  - [-180.0, -90.0, 180.0, 90.0]  # genuinely global (coastal tide gauges worldwide)
+notes: >
+  Confirmed live: each PSMSL dataset directory publishes a plain
+  `filelist.txt` for programmatic use -- semicolon-separated, one line per
+  station: `id; latitude; longitude; name; coastline code; station code;
+  QC flag`. Anonymous, no auth, no click-through. Distinct from the
+  rendered HTML station table at psmsl.org/data/obtaining/ (which carries
+  extra columns -- GLOSS ID, ISO country, a last-updated "Date" -- but is
+  a rendered view, not a stable machine format).
+
+  `psmsl.filelist_path` selects which list: the Metric list
+  (`met.monthly.data/filelist.txt`, 2,487 stations confirmed live) is
+  PSMSL's full holdings; the RLR list (`rlr.monthly.data/filelist.txt`,
+  1,620) is the datum-continuous, quality-controlled subset PSMSL
+  recommends for sea-level trend analysis. Default is Metric (the fuller
+  station picture, matching this register's "where are the stations"
+  aim). lat/lon always present and parseable (0 malformed of 2,487),
+  global (-77.9 to 82.5 lat), names always present. 124 stations carry an
+  unassigned `XXX` coastline code; 117 carry QC flag `Y` ("flagged for
+  attention" vs `N` ok) -- kept in `raw`.
+
+  Coastal tide gauges populate `SW` (the schema's "surface water: ...
+  coastal") -- the second SW source after WISE and the first global one;
+  NWIS's SW is inland lakes/reservoirs, so the two barely overlap.
+  BulkFileAdapter (no server-side spatial filter, one static file fetched
+  in full then filtered client-side), same shape as GHCN-Daily/GRDC/ISMN.
+  The filelist has no period-of-record dates -- first_obs/last_obs left
+  null, as for BoM/WISE/WQP.
+psmsl:
+  filelist_path: met.monthly.data/filelist.txt

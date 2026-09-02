@@ -27,7 +27,8 @@ source), **ISMN** (International Soil Moisture Network, global SM + P +
 SNOW), **AmeriFlux** (Americas, first `ET` source, first per-record
 `license`/`redistribution_ok`), **Water Quality Portal** (USGS/EPA/NWQMC
 joint aggregator, US, first `WQ` source — the last compartment that had
-no source). Stubbed, not yet implemented: **SIEREM** (HydroSciences Montpellier) — its
+no source), **PSMSL** (Permanent Service for Mean Sea Level, global
+coastal tide gauges — first global `SW` source). Stubbed, not yet implemented: **SIEREM** (HydroSciences Montpellier) — its
 module docstring explains the access model as last investigated (no live
 REST API; ~647 static per-basin KML files, no server-side spatial
 filtering, needs a bulk-fetch-then-filter design rather than a simple
@@ -116,7 +117,7 @@ against pydantic models in `hydrostations.register`, and grouped by protocol und
 shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
 Hub'Eau, Water Quality Portal -- hand-written fetch logic, no second known user of any of these), and
 `hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily, GRDC, ISMN,
-AmeriFlux -- sources with no server-side spatial filter, whether a static file snapshot, a live
+AmeriFlux, PSMSL -- sources with no server-side spatial filter, whether a static file snapshot, a live
 fetch-everything endpoint, or a live fetch-per-jurisdiction endpoint).
 
 `redistribution_ok` exists because not every source permits it -- GRDC is
