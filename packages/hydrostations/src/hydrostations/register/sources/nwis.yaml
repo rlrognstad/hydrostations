@@ -6,7 +6,7 @@ protocol: nwis_rdb
 endpoint: https://waterservices.usgs.gov/nwis/site/
 license: "Public domain (U.S. Geological Survey)"
 redistribution_ok: true
-compartments: [Q, GW]
+compartments: [Q, GW, SW]
 coverage:
   - [-125.0, 24.0, -66.0, 50.0]    # CONUS
   - [-170.0, 51.0, -129.0, 72.0]   # Alaska
@@ -17,10 +17,26 @@ notes: >
   RDB (tab-delimited) format. Rejects siteOutput=expanded combined with
   seriesCatalogOutput=true (400); use siteOutput=basic instead. Rejects any
   bBox request larger than ~25 sq degrees.
+
+  SW is NWIS site type LK (lake/pond/reservoir/impoundment), filtered to
+  sites carrying a water-surface-elevation or storage series -- confirmed
+  live: NWIS reports lake/reservoir level under several parameter codes by
+  vertical datum (00062 reservoir elevation above datum; 62614 / 62615 /
+  62616 lake or reservoir water surface elevation above NGVD29 / NAVD88 /
+  a local datum) plus 72020 for reservoir storage in acre-feet, and a
+  small-bbox check found ~100 of ~500 LK monitoring locations actually
+  carry one of these (the rest are water-quality / temperature only). The
+  parameter list is passed to NWIS comma-separated, verbatim; `variables`
+  splits it back out. Same coarse gage-height / storage subset a
+  hydrological catalogue cares about, mirroring Q=00060 (discharge) and
+  GW=72019 (groundwater level) -- each compartment keyed to its defining
+  measurement rather than every series at the site.
 nwis:
   site_type_by_compartment:
     Q: ST
     GW: GW
+    SW: LK
   param_code_by_compartment:
     Q: "00060"
     GW: "72019"
+    SW: "00062,62614,62615,62616,72020"

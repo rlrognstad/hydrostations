@@ -140,7 +140,10 @@ the same standard is a new YAML file, never a new Python class.
 ### Bespoke adapters (`adapters/bespoke/`) — hand-written, no second known user
 
 **`NwisEntry`** (`protocol: nwis_rdb`) — USGS RDB tab-delimited. Real user: **nwis**.
-`nwis.site_type_by_compartment` / `nwis.param_code_by_compartment`: `dict[str, str]`.
+`nwis.site_type_by_compartment` / `nwis.param_code_by_compartment`: `dict[str, str]`. A
+`param_code_by_compartment` value may be a comma-separated list of codes (NWIS accepts
+it verbatim, and `variables` splits it back out) — `SW` uses this for the lake/reservoir
+water-surface-elevation family plus storage.
 
 **`WiseEntry`** (`protocol: wise_discodata`) — EEA DiscoData SQL-over-HTTP. Real user: **wise**.
 `wise.table` (`str`), `wise.page_size` (`int`, `5000`), `wise.zone_types_by_compartment` (`dict[str, list[str]]`).
