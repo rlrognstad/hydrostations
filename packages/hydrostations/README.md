@@ -24,7 +24,9 @@ real SNOW + SM sources), **CoCoRaHS** (US volunteer network, P + SNOW),
 Data Centre, global streamflow catalogue, first `redistribution_ok: false`
 source), **ISMN** (International Soil Moisture Network, global SM + P +
 SNOW), **AmeriFlux** (Americas, first `ET` source, first per-record
-`license`/`redistribution_ok`). Stubbed, not yet implemented: **SIEREM** (HydroSciences Montpellier) — its
+`license`/`redistribution_ok`), **Water Quality Portal** (USGS/EPA/NWQMC
+joint aggregator, US, first `WQ` source — the last compartment that had
+no source). Stubbed, not yet implemented: **SIEREM** (HydroSciences Montpellier) — its
 module docstring explains the access model as last investigated (no live
 REST API; ~647 static per-basin KML files, no server-side spatial
 filtering, needs a bulk-fetch-then-filter design rather than a simple
@@ -97,7 +99,7 @@ Every adapter returns a GeoDataFrame with the same columns:
 | `geometry` | Point location (EPSG:4326) |
 | `compartment` | `Q` (streamflow) / `GW` (groundwater) / `P` (precipitation) / `SM` (soil moisture) / `ET` (evapotranspiration) / `SW` (surface water: lakes, reservoirs, coastal) / `SNOW` / `WQ` (water quality) |
 | `variables` | Native parameter code/type strings available at this station (not a canonical vocabulary yet) |
-| `elevation_m` | Populated by NRFA, SNOTEL/SCAN, GRDC (where not `-999`-sentinel missing), and AmeriFlux; null elsewhere |
+| `elevation_m` | Populated by NRFA, SNOTEL/SCAN, GRDC (where not `-999`-sentinel missing), AmeriFlux, and the Water Quality Portal (from `VerticalMeasure`, feet converted to metres); null elsewhere |
 | `catchment_area_km2` | Populated by NRFA and GRDC (where not `-999`-sentinel missing); null elsewhere |
 | `positional_uncertainty_m` / `reporting_interval` | Real fields, currently null for every adapter -- placeholders |
 | `first_obs` / `last_obs` | Period of record, where available |
@@ -111,7 +113,7 @@ Sources are driven by a YAML register (`hydrostations/register/sources/*.yaml`),
 against pydantic models in `hydrostations.register`, and grouped by protocol under
 `hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features --
 shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
-Hub'Eau -- hand-written fetch logic, no second known user of any of these), and
+Hub'Eau, Water Quality Portal -- hand-written fetch logic, no second known user of any of these), and
 `hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily, GRDC, ISMN,
 AmeriFlux -- sources with no server-side spatial filter, whether a static file snapshot, a live
 fetch-everything endpoint, or a live fetch-per-jurisdiction endpoint).

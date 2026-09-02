@@ -1,0 +1,63 @@
+source_id: wqp
+name: Water Quality Portal
+operator: >-
+  USGS, U.S. EPA, and the National Water Quality Monitoring Council
+  (jointly)
+source_class: agency
+protocol: wqp_station
+endpoint: https://www.waterqualitydata.us/data/Station/search
+license: >-
+  Federal contributions are public domain (USGS NWIS; U.S. EPA WQX);
+  state/tribal/other contributed data terms vary by the submitting
+  agency. The Water Quality Portal itself states no restrictions on data
+  use; citation requested (see waterqualitydata.us, "Cite the Water
+  Quality Portal").
+redistribution_ok: true
+compartments: [WQ]
+coverage:
+  - [-125.0, 24.0, -66.0, 50.0]    # CONUS
+  - [-170.0, 51.0, -129.0, 72.0]   # Alaska
+  - [-160.0, 18.0, -154.0, 23.0]   # Hawaii
+  - [-68.0, 17.0, -65.0, 19.0]     # Puerto Rico
+skip_out_of_coverage: true
+notes: >
+  First source to populate WQ -- previously the only code in COMPARTMENTS
+  with no source at all (AmeriFlux having just filled the prior gap, ET).
+  Confirmed live: the Station search service
+  (waterqualitydata.us/data/Station/search) returns a monitoring-location
+  inventory as CSV with a real server-side bbox filter
+  (bBox=min_lon,min_lat,max_lon,max_lat), no auth, no API key -- the joint
+  USGS/EPA/NWQMC aggregator, distinct from NWIS's own site service and
+  from EPA's WQX web services.
+
+  No pagination and no bbox-size limit (unlike NWIS's ~25 sq deg cap): the
+  entire matching set streams back in one response. Verified live -- a
+  ~4x7 deg box over Colorado returned 67,153 sites in ~3s; the full CONUS
+  box returned 2,777,656 sites in a single ~116 MB / ~93s response. The
+  adapter's timeout is set to 300s accordingly, and a broad query is
+  genuinely slow. Called with no bbox, the adapter issues one request per
+  coverage box below rather than an unfiltered pull (the service rejects a
+  query carrying no spatial/attribute filter; a bare request also just
+  hangs).
+
+  skip_out_of_coverage is set (as for NWIS, the register's other US-only
+  agency source) -- not to dodge an API limit here, but because a query
+  bbox outside the US has no chance of a hit and each WQP request is
+  expensive; the coverage boxes carry firm ocean/border margins.
+
+  Every monitoring-location type (streams, wells, springs, lakes,
+  atmosphere, treatment facilities, CERCLA Superfund sites) is a
+  water-quality site by definition of the portal, so there is no
+  site-type filter -- one query per box covers WQ.
+  MonitoringLocationIdentifier is org-prefixed and unique (e.g.
+  USGS-01646500); MonitoringLocationName is null for ~8% of rows; lat/lon
+  always present. Coordinate datum varies per row (NAD83 ~72%, plus
+  WGS84 / NAD27 / UNKWN) and is not reprojected. elevation_m is filled
+  from VerticalMeasure/MeasureValue where present (~2/3 of rows),
+  converting feet/ft to metres. No period-of-record fields exist on this
+  service (sample dates are in the separate Result service, not fetched
+  here) -- first_obs/last_obs are null, as for BoM/WISE.
+
+  WQP re-serves NWIS sites (provider NWIS) alongside EPA WQX sites; these
+  overlap the nwis source's Q/GW records but are a different compartment
+  and id shape, and this register does not deduplicate across sources.
