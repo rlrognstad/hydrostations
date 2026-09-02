@@ -269,6 +269,21 @@ class WqpEntry(SourceEntryBase):
     protocol: Literal["wqp_station"]
 
 
+class PsmslConfig(BaseModel):
+    # Which of PSMSL's per-dataset station lists to read. Metric (default)
+    # is PSMSL's full holdings; the RLR subset
+    # ("rlr.monthly.data/filelist.txt") is the datum-continuous, QC'd set
+    # recommended for sea-level trend analysis -- kept configurable, same
+    # reasoning as GHCN's stations_path.
+    filelist_path: str = "met.monthly.data/filelist.txt"
+
+
+class PsmslEntry(SourceEntryBase):
+    protocol: Literal["psmsl_filelist"]
+    # Every PsmslConfig field is defaulted, so the block is optional in YAML.
+    psmsl: PsmslConfig = Field(default_factory=PsmslConfig)
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -285,7 +300,8 @@ SourceEntry = Annotated[
     | GrdcEntry
     | IsmnEntry
     | AmerifluxEntry
-    | WqpEntry,
+    | WqpEntry
+    | PsmslEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)
