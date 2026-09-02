@@ -1,0 +1,58 @@
+source_id: ideam
+name: IDEAM National Station Catalogue
+operator: >-
+  Instituto de Hidrología, Meteorología y Estudios Ambientales (IDEAM),
+  Colombia
+source_class: agency
+protocol: socrata
+endpoint: https://www.datos.gov.co
+license: >-
+  Datos Abiertos Colombia (datos.gov.co) -- open government data under
+  Ley 1712 de 2014; free reuse with attribution to IDEAM. No click-through
+  licence, no API key required.
+redistribution_ok: true
+compartments: [Q, P]
+coverage:
+  - [-83.1, -4.3, -66.8, 13.5]  # Colombia incl. San Andrés y Providencia
+notes: >
+  Confirmed live: the "Catálogo Nacional de Estaciones del IDEAM" dataset
+  (resource hp9r-jxuu) on Colombia's national open-data portal, served via
+  Socrata's SODA/SoQL API -- anonymous, no key. 9,846 stations total; this
+  entry maps the 7,611 with a river-level or rain-gauge category:
+  Limnimétrica (2,002) + Limnigráfica (1,128) -> Q; Pluviométrica (3,895)
+  + Pluviográfica (586) -> P. The 2,800+ Climatológica/Sinóptica/
+  Agrometeorológica/etc. stations also record rainfall and can be folded
+  into P via `socrata.category_by_compartment` with no code change.
+
+  Real server-side filtering: `$where` takes a numeric lat/lon bounding
+  box plus the `categoria in (...)` clause, `$limit`/`$offset` paging over
+  `$order=codigo`. The Q categories are river water-level (limnimetric =
+  staff gauge, limnigraphic = recording stage), not measured discharge --
+  but they are the streamflow-network backbone, same framing as GRDC/
+  ECCC/NRFA "hydrometric station" -> Q.
+
+  latitud/longitud are the correct WGS84 fields (the dataset's `ubicaci_n`
+  point column has them swapped -- not used). altitud is metres (0 to
+  4,812, no sentinel). fecha_instalacion / fecha_suspension are DD/MM/YYYY
+  (IDEAM records them as the 15th of the month) -> first_obs/last_obs via
+  `socrata.date_format`. Tokenless Socrata traffic is rate-limited; a
+  burst of requests can transiently 500/503, but a normal query here is a
+  handful of pages.
+
+  First `socrata` protocol user and the first South American source
+  outside Brazil.
+socrata:
+  dataset_id: hp9r-jxuu
+  id_field: codigo
+  name_field: nombre
+  lat_field: latitud
+  lon_field: longitud
+  elevation_field: altitud
+  first_obs_field: fecha_instalacion
+  last_obs_field: fecha_suspension
+  date_format: "%d/%m/%Y"
+  category_field: categoria
+  category_by_compartment:
+    Q: [Limnimétrica, Limnigráfica]
+    P: [Pluviométrica, Pluviográfica]
+  page_size: 1000

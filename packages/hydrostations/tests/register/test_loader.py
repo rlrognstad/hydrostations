@@ -40,6 +40,7 @@ def test_load_entries_reads_real_production_register():
         "ameriflux",
         "wqp",
         "psmsl",
+        "ideam",
     }
 
 

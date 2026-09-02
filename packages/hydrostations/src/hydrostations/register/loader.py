@@ -31,6 +31,7 @@ from hydrostations.adapters.bulk.snotel import SnotelAdapter
 from hydrostations.adapters.protocols.arcgis import ArcGisFeatureServerAdapter
 from hydrostations.adapters.protocols.kiwis import KiWisAdapter
 from hydrostations.adapters.protocols.ogc_features import OgcFeaturesAdapter
+from hydrostations.adapters.protocols.socrata import SocrataAdapter
 from hydrostations.adapters.protocols.wfs import WfsAdapter
 from hydrostations.exceptions import RegisterError
 from hydrostations.register.models import SourceEntry, SourceEntryAdapter
@@ -45,6 +46,7 @@ _ADAPTER_CLASSES: dict[str, type[SourceAdapter]] = {
     "wfs": WfsAdapter,
     "arcgis_feature_server": ArcGisFeatureServerAdapter,
     "ogc_features": OgcFeaturesAdapter,
+    "socrata": SocrataAdapter,
     "nwis_rdb": NwisAdapter,
     "wise_discodata": WiseAdapter,
     "hubeau": HubeauAdapter,

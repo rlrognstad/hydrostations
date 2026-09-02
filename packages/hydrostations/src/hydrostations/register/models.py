@@ -137,6 +137,31 @@ class OgcFeaturesEntry(SourceEntryBase):
     ogc_features: OgcFeaturesConfig
 
 
+class SocrataConfig(BaseModel):
+    dataset_id: str  # the Socrata "4x4" resource id, e.g. "hp9r-jxuu"
+    id_field: str
+    name_field: str
+    lat_field: str
+    lon_field: str
+    elevation_field: str | None = None
+    first_obs_field: str | None = None
+    last_obs_field: str | None = None
+    # strptime pattern for first/last obs when they aren't ISO-8601
+    # (IDEAM's are "DD/MM/YYYY"); None -> best-effort ISO parsing.
+    date_format: str | None = None
+    # A record's native station-type field, and which of its values feed
+    # each compartment -- config-driven, same reasoning as GHCN's
+    # element_by_compartment.
+    category_field: str
+    category_by_compartment: dict[str, list[str]]
+    page_size: int = 1000
+
+
+class SocrataEntry(SourceEntryBase):
+    protocol: Literal["socrata"]
+    socrata: SocrataConfig
+
+
 class NwisConfig(BaseModel):
     site_type_by_compartment: dict[str, str]
     param_code_by_compartment: dict[str, str]
@@ -318,7 +343,8 @@ SourceEntry = Annotated[
     | IsmnEntry
     | AmerifluxEntry
     | WqpEntry
-    | PsmslEntry,
+    | PsmslEntry
+    | SocrataEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)

@@ -30,7 +30,9 @@ joint aggregator, US, first `WQ` source — the last compartment that had
 no source), **PSMSL** (Permanent Service for Mean Sea Level, global
 coastal tide gauges — first global `SW` source), **SIEREM** (HydroSciences
 Montpellier — first African source: Q + P from ~276 static per-basin KML
-files, `live: false`). Every registered source now has a working adapter.
+files, `live: false`), **IDEAM** (Colombia's national hydro-met agency, Q +
+P — first `socrata` protocol adapter, first South American source outside
+Brazil). Every registered source now has a working adapter.
 
 Worth knowing: GGMN, WISE, HidroWeb, and SIEREM were *all* stubbed as
 "blocked" in the original design doc, and live investigation found each
@@ -112,7 +114,7 @@ Every adapter returns a GeoDataFrame with the same columns:
 
 Sources are driven by a YAML register (`hydrostations/register/sources/*.yaml`), validated
 against pydantic models in `hydrostations.register`, and grouped by protocol under
-`hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features --
+`hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features, Socrata --
 shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
 Hub'Eau, Water Quality Portal -- hand-written fetch logic, no second known user of any of these), and
 `hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily, GRDC, ISMN,

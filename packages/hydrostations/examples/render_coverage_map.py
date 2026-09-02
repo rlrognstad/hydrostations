@@ -100,6 +100,7 @@ _SOURCE_REGION_MATCH: dict[str, dict] = {
     "snotel": {"iso_a3": ["USA"]},
     "cocorahs": {"iso_a3": ["USA"]},
     "wqp": {"iso_a3": ["USA"]},
+    "ideam": {"iso_a3": ["COL"]},
     "wise": {"continent": ["Europe"]},
     "sierem": {"continent": ["Africa", "Europe"]},
 }

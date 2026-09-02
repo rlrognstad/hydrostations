@@ -7,7 +7,7 @@ This documents the *input* schema — how a source is declared in
 
 One YAML file = one source. Every file is validated at load time against the
 pydantic models in `hydrostations.register.models`, discriminated by its
-`protocol` field into one of seventeen entry types. `protocol` picks both the
+`protocol` field into one of eighteen entry types. `protocol` picks both the
 adapter class that serves the source (`register/loader.py`'s
 `_ADAPTER_CLASSES`) and the shape of that entry's protocol-specific config
 block.
@@ -31,7 +31,7 @@ block.
 | `skip_out_of_coverage` | `bool` | no (`false`) | Opt-in: skip fetching entirely when the query bbox can't intersect `coverage`. Only NWIS sets this, to dodge its own bbox-size API limit — coverage boxes are coarse, so this isn't applied by default. |
 | `notes` | `str \| None` | no | Free text — real findings from live investigation belong here, not just aspirational docs. |
 
-## The seventeen entry types
+## The eighteen entry types
 
 Every entry type adds one `Literal["..."]` protocol tag and, except for
 `AmerifluxEntry` and `WqpEntry`, one nested config block carrying whatever
@@ -53,6 +53,7 @@ classDiagram
     SourceEntryBase <|-- WfsEntry
     SourceEntryBase <|-- ArcGisEntry
     SourceEntryBase <|-- OgcFeaturesEntry
+    SourceEntryBase <|-- SocrataEntry
     SourceEntryBase <|-- NwisEntry
     SourceEntryBase <|-- WiseEntry
     SourceEntryBase <|-- HubeauEntry
@@ -71,6 +72,7 @@ classDiagram
     WfsEntry --> WfsConfig : wfs
     ArcGisEntry --> ArcGisConfig : arcgis
     OgcFeaturesEntry --> OgcFeaturesConfig : ogc_features
+    SocrataEntry --> SocrataConfig : socrata
     NwisEntry --> NwisConfig : nwis
     WiseEntry --> WiseConfig : wise
     HubeauEntry --> HubeauConfig : hubeau
@@ -86,6 +88,7 @@ classDiagram
     class WfsEntry { protocol: "wfs" }
     class ArcGisEntry { protocol: "arcgis_feature_server" }
     class OgcFeaturesEntry { protocol: "ogc_features" }
+    class SocrataEntry { protocol: "socrata" }
     class NwisEntry { protocol: "nwis_rdb" }
     class WiseEntry { protocol: "wise_discodata" }
     class HubeauEntry { protocol: "hubeau" }
@@ -103,7 +106,7 @@ classDiagram
 
 ### Protocol adapters (`adapters/protocols/`) — one class, many real agencies
 
-These four are the point of the whole register design: a second agency on
+These five are the point of the whole register design: a second agency on
 the same standard is a new YAML file, never a new Python class.
 
 **`KiwisEntry`** (`protocol: kiwis`) — KISTERS KiWIS platform. Real user: **bom**.
@@ -140,6 +143,18 @@ the same standard is a new YAML file, never a new Python class.
 |---|---|---|
 | `page_size` | `int` (`500`) | `limit`/`offset` paging. |
 | `collections` | `dict[compartment, OgcFeaturesCollectionConfig]` | Per-compartment `{collection, id_field, name_field}`. |
+
+**`SocrataEntry`** (`protocol: socrata`) — Socrata SODA/SoQL open-data portals (`endpoint` is the portal domain). Real user: **ideam** (Colombia's datos.gov.co). SoQL query with a `$where` `category in (...)` clause plus a numeric lat/lon bounding box, `$order`/`$limit`/`$offset` paging — real server-side spatial filtering, so a protocol adapter rather than bulk.
+
+| `socrata.` field | Type | Meaning |
+|---|---|---|
+| `dataset_id` | `str` | The Socrata "4x4" resource id, e.g. `hp9r-jxuu`. |
+| `id_field` / `name_field` / `lat_field` / `lon_field` | `str` | Response field names (lat/lon numeric). |
+| `elevation_field` / `first_obs_field` / `last_obs_field` | `str \| None` | Optional — mapped straight through when present. |
+| `date_format` | `str \| None` | `strptime` pattern for the obs dates when not ISO-8601 (IDEAM's are `%d/%m/%Y`). |
+| `category_field` | `str` | The native station-type field. |
+| `category_by_compartment` | `dict[str, list[str]]` | Which `category_field` values feed each compartment. |
+| `page_size` | `int` (`1000`) | `$limit`/`$offset` page size. |
 
 ### Bespoke adapters (`adapters/bespoke/`) — hand-written, no second known user
 
