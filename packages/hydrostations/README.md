@@ -33,8 +33,10 @@ Montpellier — first African source: Q + P from ~276 static per-basin KML
 files, `live: false`), **IDEAM** (Colombia's national hydro-met agency, Q +
 P — first `socrata` protocol adapter, first South American source outside
 Brazil), **waterinfo.be** (VMM, Flanders — Q + P + GW; the second `kiwis`
-protocol user, first non-BoM validation of that adapter). Every registered
-source now has a working adapter.
+protocol user, first non-BoM validation of that adapter), **GLOBE
+Program** (global citizen-science schools network — WQ + SM + SNOW; the
+second `citizen` source and the first with citizen-class water quality).
+Every registered source now has a working adapter.
 
 Worth knowing: GGMN, WISE, HidroWeb, and SIEREM were *all* stubbed as
 "blocked" in the original design doc, and live investigation found each
@@ -118,7 +120,7 @@ Sources are driven by a YAML register (`hydrostations/register/sources/*.yaml`),
 against pydantic models in `hydrostations.register`, and grouped by protocol under
 `hydrostations.adapters.protocols` (KiWIS, WFS, ArcGIS Feature Server, OGC API-Features, Socrata --
 shared adapter classes, config-only per source), `hydrostations.adapters.bespoke` (NWIS, WISE,
-Hub'Eau, Water Quality Portal -- hand-written fetch logic, no second known user of any of these), and
+Hub'Eau, Water Quality Portal, GLOBE -- hand-written fetch logic, no second known user of any of these), and
 `hydrostations.adapters.bulk` (SIEREM, NRFA, SNOTEL/SCAN, CoCoRaHS, GHCN-Daily, GRDC, ISMN,
 AmeriFlux, PSMSL -- sources with no server-side spatial filter, whether a static file snapshot, a live
 fetch-everything endpoint, or a live fetch-per-jurisdiction endpoint).

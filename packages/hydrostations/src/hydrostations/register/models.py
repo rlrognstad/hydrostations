@@ -326,6 +326,26 @@ class PsmslEntry(SourceEntryBase):
     psmsl: PsmslConfig = Field(default_factory=PsmslConfig)
 
 
+class GlobeConfig(BaseModel):
+    # GLOBE's API-name for each measurement protocol that feeds a
+    # compartment -- config-driven, same reasoning as GHCN's
+    # element_by_compartment. `precipitations` is deliberately not mapped
+    # by default (very high volume, and P is already well covered); add it
+    # to a `P` key here to include it.
+    protocols_by_compartment: dict[str, list[str]]
+    # GLOBE has no station endpoint -- sites are derived by aggregating
+    # measurements, so a start date bounds which sites appear (and floors
+    # their first_obs). Sites with no observation since this date are
+    # omitted.
+    start_date: str = "2019-01-01"
+    page_size: int = 5000
+
+
+class GlobeEntry(SourceEntryBase):
+    protocol: Literal["globe_api"]
+    globe: GlobeConfig
+
+
 SourceEntry = Annotated[
     KiwisEntry
     | WfsEntry
@@ -344,7 +364,8 @@ SourceEntry = Annotated[
     | AmerifluxEntry
     | WqpEntry
     | PsmslEntry
-    | SocrataEntry,
+    | SocrataEntry
+    | GlobeEntry,
     Field(discriminator="protocol"),
 ]
 SourceEntryAdapter: TypeAdapter[SourceEntry] = TypeAdapter(SourceEntry)

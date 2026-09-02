@@ -42,6 +42,7 @@ def test_load_entries_reads_real_production_register():
         "psmsl",
         "ideam",
         "waterinfo",
+        "globe",
     }
 
 
