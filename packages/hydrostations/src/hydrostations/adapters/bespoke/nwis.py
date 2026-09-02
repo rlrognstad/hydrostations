@@ -52,6 +52,12 @@ class NwisAdapter(SourceAdapter):
 
     def _fetch_compartment(self, *, bbox: BBox | None, compartment: str) -> list[dict]:
         cfg = self.entry.nwis
+        # A compartment may map to several parameter codes -- SW (lakes/
+        # reservoirs) spans the water-surface-elevation family plus storage,
+        # which NWIS reports under different codes by vertical datum. NWIS
+        # accepts the comma-separated list verbatim; `variables` gets it
+        # split back out.
+        param_codes = cfg.param_code_by_compartment[compartment]
         params = {
             "format": "rdb",
             "siteType": cfg.site_type_by_compartment[compartment],
@@ -61,7 +67,7 @@ class NwisAdapter(SourceAdapter):
             # output still carries station_nm/dec_lat_va/dec_long_va.
             "siteOutput": "basic",
             "seriesCatalogOutput": "true",
-            "parameterCd": cfg.param_code_by_compartment[compartment],
+            "parameterCd": param_codes,
         }
         if bbox is not None:
             params["bBox"] = f"{bbox.min_lon},{bbox.min_lat},{bbox.max_lon},{bbox.max_lat}"
@@ -91,7 +97,7 @@ class NwisAdapter(SourceAdapter):
                     "lon": float(row.dec_long_va),
                     "lat": float(row.dec_lat_va),
                     "compartment": compartment,
-                    "variables": [cfg.param_code_by_compartment[compartment]],
+                    "variables": param_codes.split(","),
                     "first_obs": pd.to_datetime(row.begin_date, errors="coerce"),
                     "last_obs": pd.to_datetime(row.end_date, errors="coerce"),
                     "wsi": None,

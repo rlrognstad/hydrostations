@@ -15,7 +15,8 @@ stations = get_stations(basin="niger", compartment="Q")
 
 ## Status
 
-Early scaffold. Implemented adapters: **NWIS** (USGS), **BoM** (Australia),
+Early scaffold. Implemented adapters: **NWIS** (USGS, Q + GW + lake/reservoir
+SW), **BoM** (Australia),
 **GGMN** (IGRAC, global groundwater), **WISE** (EEA, Europe), **HidroWeb**
 (ANA, Brazil), **ECCC** (Water Survey of Canada), **Hub'Eau** (France, Q+GW),
 **NRFA** (UK National River Flow Archive), **SNOTEL/SCAN** (USDA NRCS, first

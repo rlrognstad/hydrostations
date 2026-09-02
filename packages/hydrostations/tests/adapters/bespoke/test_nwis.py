@@ -41,6 +41,26 @@ def test_fetch_stations_parses_and_aggregates_period_of_record(
     assert frame.geometry.iloc[0].y == 38.95
 
 
+def test_fetch_stations_sw_uses_lake_sitetype_and_splits_param_codes(
+    mocked_api: respx.MockRouter, register_entries
+):
+    route = mocked_api.get("https://waterservices.usgs.gov/nwis/site/").mock(
+        return_value=httpx.Response(200, text=_RDB_RESPONSE)
+    )
+
+    frame = NwisAdapter(register_entries["nwis"]).fetch_stations(
+        bbox=BBox(min_lon=-82.5, min_lat=27.0, max_lon=-80.0, max_lat=29.0),
+        compartment="SW",
+    )
+
+    sent = route.calls.last.request.url
+    assert sent.params["siteType"] == "LK"
+    assert sent.params["parameterCd"] == "00062,62614,62615,62616,72020"
+    row = frame.iloc[0]
+    assert row["compartment"] == "SW"
+    assert row["variables"] == ["00062", "62614", "62615", "62616", "72020"]
+
+
 def test_fetch_stations_handles_empty_response(mocked_api: respx.MockRouter, register_entries):
     mocked_api.get("https://waterservices.usgs.gov/nwis/site/").mock(
         return_value=httpx.Response(200, text="# no sites found\n")
