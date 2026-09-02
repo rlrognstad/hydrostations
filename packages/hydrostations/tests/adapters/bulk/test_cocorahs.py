@@ -133,3 +133,14 @@ def test_fetch_stations_unsupported_compartment_skips_request(
     # would raise for the unmatched call.
     frame = CocorahsAdapter(register_entries["cocorahs"]).fetch_stations(compartment="Q")
     assert frame.empty
+
+
+def test_shipped_entry_covers_states_dc_and_territories(register_entries):
+    # Regression check on the real YAML: 50 states + DC + the four
+    # CoCoRaHS-operated US territories that have a working filter code.
+    states = set(register_entries["cocorahs"].cocorahs.states)
+    assert {"PR", "VI", "GU", "MP"} <= states
+    assert "DC" in states
+    assert len(states) == 55
+    # Canada (State=CAN) has no filter code -- deliberately absent.
+    assert "CAN" not in states

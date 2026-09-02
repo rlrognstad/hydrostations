@@ -13,13 +13,15 @@ but a separate, genuinely anonymous XML export endpoint
 unauthenticated. It has no bbox filter and no "all states" mode
 (`state=a` crashed the server with an OutOfMemoryException) -- only a
 real per-state filter, so the full inventory is one request per
-jurisdiction (see the register entry's `cocorahs.states` list),
-aggregated, then filtered client-side via
-`BulkFileAdapter._filter_by_bbox()`, same shape as NRFA/SNOTEL. Each
-state is fetched once regardless of how many compartments are
-requested -- the per-state fetch is the expensive part (~38s for all
-51 jurisdictions), duplicating it per compartment would double that for
-no reason since the same response covers both.
+jurisdiction (see the register entry's `cocorahs.states` list -- 50
+states + DC + the PR/VI/GU/MP territories), aggregated, then filtered
+client-side via `BulkFileAdapter._filter_by_bbox()`, same shape as
+NRFA/SNOTEL. Each state is fetched once regardless of how many
+compartments are requested -- the per-state fetch is the expensive part
+(~40s for all 55 jurisdictions), duplicating it per compartment would
+double that for no reason since the same response covers both. Canada
+(`State=CAN`) and the Bahamas run CoCoRaHS too but have no working
+filter code -- see the register entry's notes.
 
 Real gotcha, confirmed live: the "currently reporting" status string is
 "Reporting", not "Active" -- a naive "Active" filter silently returns
