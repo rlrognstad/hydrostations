@@ -1,8 +1,9 @@
 """Generic KISTERS WISKI/KiWIS protocol adapter.
 
 KiWIS is not an open standard, but it's a *platform* running under a large
-number of hydrological agencies (proven here by BoM's real deployment) --
-a new agency on this protocol is a register entry, not a new Python class.
+number of hydrological agencies (proven here by BoM's and waterinfo.be's
+real deployments) -- a new agency on this protocol is a register entry,
+not a new Python class.
 Endpoint, `datasource`, field names, and the parameter-type-name per
 compartment all come from the register entry's `kiwis` config block.
 

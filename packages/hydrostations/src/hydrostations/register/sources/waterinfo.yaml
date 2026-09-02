@@ -1,0 +1,54 @@
+source_id: waterinfo
+name: waterinfo.be
+operator: Vlaamse Milieumaatschappij (VMM), Flanders, Belgium
+source_class: agency
+protocol: kiwis
+endpoint: https://download.waterinfo.be/tsmdownload/KiWIS/KiWIS
+license: >-
+  Gratis Open Data Licentie Vlaanderen v1.0 -- non-exclusive worldwide
+  reuse for any lawful purpose (reproduction, distribution, adaptation,
+  commercial use) with attribution: "bevat overheidsinformatie verkregen
+  onder de Gratis Open Data Licentie Vlaanderen v1.0" / source: VMM,
+  waterinfo.be.
+redistribution_ok: true
+compartments: [Q, P, GW]
+coverage:
+  - [2.5, 50.65, 5.95, 51.55]  # Flanders (VMM's remit; Wallonia is SPW's separate network)
+notes: >
+  Second `kiwis` protocol user after BoM -- a new agency on the KISTERS
+  WISKI/KiWIS platform is a register entry, no new Python. This is the
+  first non-BoM validation of that adapter. Confirmed live against
+  download.waterinfo.be's KiWIS endpoint (`datasource=1`): getStationList
+  with a `parametertype_name` filter and server-side `bbox` both work
+  anonymously, JSON header+rows shape identical to BoM's.
+
+  parametertype_name values (from getParameterList): `Q` (discharge) -> Q,
+  `N` (neerslag/precipitation) -> P, `Grondwaterstand` -> GW. Station
+  counts unfiltered by bbox: Q 351, P 96, GW only 15 -- waterinfo.be is
+  surface-water focused, Flemish groundwater lives in the separate DOV
+  system. ~13 of the Q stations come back with empty-string lat/lon, which
+  the KiWIS adapter already skips.
+
+  Access note: VMM *requests* (does not enforce, as of this writing) a
+  free token for automated queries -- contact hydrometrie@waterinfo.be --
+  aimed at bulk time-series downloads, not this station-metadata call,
+  which works tokenless. Same "operator prefers you identify" caveat as
+  NRFA's caching clause and IDEAM's Socrata throttle.
+
+  First Belgian source; also the first `kiwis` entry to carry P and a
+  third compartment.
+kiwis:
+  datasource: "1"
+  id_field: station_no
+  name_field: station_name
+  lat_field: station_latitude
+  lon_field: station_longitude
+  return_fields:
+    - station_no
+    - station_name
+    - station_latitude
+    - station_longitude
+  parameter_type_by_compartment:
+    Q: "Q"
+    P: "N"
+    GW: "Grondwaterstand"

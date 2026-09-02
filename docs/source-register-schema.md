@@ -107,9 +107,10 @@ classDiagram
 ### Protocol adapters (`adapters/protocols/`) — one class, many real agencies
 
 These five are the point of the whole register design: a second agency on
-the same standard is a new YAML file, never a new Python class.
+the same standard is a new YAML file, never a new Python class -- `kiwis`
+now proves it in the register itself (**bom** + **waterinfo**).
 
-**`KiwisEntry`** (`protocol: kiwis`) — KISTERS KiWIS platform. Real user: **bom**.
+**`KiwisEntry`** (`protocol: kiwis`) — KISTERS KiWIS platform. Real users: **bom**, **waterinfo** (VMM Flanders).
 
 | `kiwis.` field | Type | Meaning |
 |---|---|---|

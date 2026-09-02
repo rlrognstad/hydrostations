@@ -32,7 +32,9 @@ coastal tide gauges — first global `SW` source), **SIEREM** (HydroSciences
 Montpellier — first African source: Q + P from ~276 static per-basin KML
 files, `live: false`), **IDEAM** (Colombia's national hydro-met agency, Q +
 P — first `socrata` protocol adapter, first South American source outside
-Brazil). Every registered source now has a working adapter.
+Brazil), **waterinfo.be** (VMM, Flanders — Q + P + GW; the second `kiwis`
+protocol user, first non-BoM validation of that adapter). Every registered
+source now has a working adapter.
 
 Worth knowing: GGMN, WISE, HidroWeb, and SIEREM were *all* stubbed as
 "blocked" in the original design doc, and live investigation found each
